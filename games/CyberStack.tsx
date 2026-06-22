@@ -33,10 +33,6 @@ export default function CyberStack({ onClose, onPlayAgain }: Props) {
   const activeRef = useRef(false);
   const loopRef = useRef<number | null>(null);
 
-  // Debris list for slices that fall off
-  const [debris, setDebris] = useState<{ id: number; x: number; y: number; w: number; color: string; vy: number }[]>([]);
-  const debrisRef = useRef<{ id: number; x: number; y: number; w: number; color: string; vy: number }[]>([]);
-  const debrisId = useRef(0);
   const tickRef = useRef(0);
   const frameSkipCS = useRef(0);
 
@@ -110,21 +106,6 @@ export default function CyberStack({ onClose, onPlayAgain }: Props) {
           nextX = overlapLeft;
           nextW = overlapW;
 
-          // Spawn debris
-          const overhangLeft = leftEdge < prevLeft;
-          const debrisW = cur.w - overlapW;
-          const debrisX = overhangLeft ? leftEdge : overlapRight;
-          if (debrisW > 0) {
-            const newDebris = {
-              id: debrisId.current++,
-              x: debrisX,
-              y: cur.y,
-              w: debrisW,
-              color: cur.color,
-              vy: 0,
-            };
-            debrisRef.current.push(newDebris);
-          }
         }
       }
     }
@@ -199,14 +180,7 @@ export default function CyberStack({ onClose, onPlayAgain }: Props) {
       activeBlockX.setValue(nx);
     }
 
-    // 2. Update debris (gravitational fall) — only update state every 3 frames
-    if (debrisRef.current.length > 0) {
-      debrisRef.current = debrisRef.current
-        .map(d => ({ ...d, y: d.y + d.vy, vy: d.vy + 0.5 }))
-        .filter(d => d.y < GH + 60)
-        .slice(0, 4); // cap debris count
-      if (tickRef.current % 3 === 0) setDebris(debrisRef.current.slice());
-    }
+
 
     loopRef.current = requestAnimationFrame(gameLoop);
   }, []);
@@ -242,10 +216,8 @@ export default function CyberStack({ onClose, onPlayAgain }: Props) {
     dirRef.current = 1;
     speedRef.current = 3.5;
     blocksRef.current = [baseBlock, movingBlock];
-    debrisRef.current = [];
     // Render only the base (locked) block; movingBlock rendered via activeBlockX
     setBlocks([baseBlock]);
-    setDebris([]);
 
     setPhase('playing');
     loopRef.current = requestAnimationFrame(gameLoop);
@@ -360,7 +332,6 @@ export default function CyberStack({ onClose, onPlayAgain }: Props) {
                   top: b.y,
                   width: b.w,
                   backgroundColor: b.color,
-                  shadowColor: b.color,
                 },
               ]}
             />
@@ -377,7 +348,6 @@ export default function CyberStack({ onClose, onPlayAgain }: Props) {
                     top: ab.y,
                     width: ab.w,
                     backgroundColor: ab.color,
-                    shadowColor: ab.color,
                     transform: [{ translateX: activeBlockX }],
                   },
                 ]}
@@ -385,21 +355,6 @@ export default function CyberStack({ onClose, onPlayAgain }: Props) {
             );
           })()}
 
-          {/* Overhang Slices (Debris) */}
-          {debris.map(d => (
-            <View
-              key={d.id}
-              style={[
-                s.debris,
-                {
-                  left: d.x,
-                  top: d.y,
-                  width: d.w,
-                  backgroundColor: d.color,
-                },
-              ]}
-            />
-          ))}
         </A.View>
       </TouchableOpacity>
     </View>
@@ -416,7 +371,6 @@ const s = StyleSheet.create({
   titleRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   gameTitle: {
     color: '#FF0055', fontSize: 30, fontWeight: '900', letterSpacing: 4,
-    textShadowColor: 'rgba(255,0,85,0.6)', textShadowOffset: { width: 0, height: 0 }, textShadowRadius: 10,
   },
   infoCard: {
     backgroundColor: colors.bgCard, borderRadius: radius.lg, padding: 18,
@@ -429,7 +383,6 @@ const s = StyleSheet.create({
     flexDirection: 'row', alignItems: 'center', gap: 6,
     backgroundColor: '#FF0055', paddingVertical: 14, paddingHorizontal: 32,
     borderRadius: radius.full,
-    shadowColor: '#FF0055', shadowOffset: { width: 0, height: 0 }, shadowOpacity: 0.6, shadowRadius: 12, elevation: 8,
   },
   startBtnText: { color: colors.bgDeep, fontSize: 16, fontWeight: '900', letterSpacing: 1 },
   btnOutline: {

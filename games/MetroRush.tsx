@@ -181,7 +181,7 @@ export default function MetroRush({onClose,onPlayAgain}:Props) {
 
     tickRef.current++;
     if(tickRef.current%5===0){scoreRef.current++;setScore(scoreRef.current);spdRef.current=INIT_SPD+scoreRef.current*0.000055;}
-    roadZRef.current = (roadZRef.current + spdRef.current * 1.5) % 1;
+
 
     if(tickRef.current%SPAWN_INTERVAL===0){
       const lane=Math.floor(Math.random()*3) as Lane;
@@ -298,55 +298,7 @@ export default function MetroRush({onClose,onPlayAgain}:Props) {
     </View>
   );
 
-  const offset = roadZRef.current;
-  const numStrips = 12;
-  const dynamicStrips = [];
-  for (let i = -1; i < numStrips; i++) {
-    const z0 = (i + offset) / numStrips;
-    const z1 = (i + 1 + offset) / numStrips;
-    const cz0 = Math.max(0, Math.min(1, z0));
-    const cz1 = Math.max(0, Math.min(1, z1));
-    if (cz1 <= cz0) continue;
-    const zm = (cz0 + cz1) / 2;
-    const y = sY(cz0);
-    const h = sY(cz1) - sY(cz0);
-    const w = tHalf(zm) * 2;
-    const dark = (i % 2 === 0);
-    dynamicStrips.push({ y, h, w, dark });
-  }
 
-  const numDividers = 8;
-  const dynamicDividers = [];
-  for (let i = 0; i < numDividers; i++) {
-    const z = ((i + offset) % numDividers) / numDividers;
-    if (z <= 0.02 || z >= 0.99) continue;
-    dynamicDividers.push({
-      y: sY(z) - 2,
-      x1: lX(0, z) + tHalf(z) * (2 / 3) - 1,
-      x2: lX(2, z) - tHalf(z) * (2 / 3) - 1,
-      w: Math.max(1.5, 3.8 * z),
-      h: Math.max(4, 22 * z),
-    });
-  }
-
-  const numPillars = 4;
-  const dynamicPillars = [];
-  for (let i = 0; i < numPillars; i++) {
-    const z = ((i + offset) % numPillars) / numPillars;
-    if (z < 0.05 || z > 0.99) continue;
-    const sc = 0.12 + z * 0.88;
-    const sy = sY(z);
-    const th = tHalf(z);
-    const pw = 12 * sc;
-    const ph = 80 * sc;
-    const lx = VP_X - th - pw - 2;
-    const rx = VP_X + th + 2;
-    const ax = lx;
-    const aw = rx + pw - lx;
-    const ah = 6 * sc;
-    const ay = sy - ph;
-    dynamicPillars.push({ key: `p-${i}`, lx, rx, y: sy - ph, w: pw, h: ph, ax, aw, ah, ay, sc });
-  }
 
 
   return(
@@ -363,62 +315,23 @@ export default function MetroRush({onClose,onPlayAgain}:Props) {
 
       <View style={[s.game,flash&&s.gflash]} {...pan.panHandlers}>
         {/* Sky */}
-        <View style={s.sky}>
-          <View style={s.moon}/>
-          {[...Array(8)].map((_,i)=>(
-            <View key={i} style={{position:'absolute',
-              left:(i*97)%(GW+40)-20, top:(i*43)%((VP_Y)-10),
-              width:i%4===0?2:1.5, height:i%4===0?2:1.5,
-              borderRadius:2, backgroundColor:'#FFF', opacity:0.3+i%5*0.1}}/>
-          ))}
-          {BLDGS.map((b,i)=>{
-            const left = b.side==='L' ? (VP_X - TW_BOT - b.dx - b.w - 4) : (VP_X + TW_BOT + b.dx + 4);
-            return(
-              <View key={i} style={{position:'absolute',bottom:0,left,width:b.w,height:b.h,
-                backgroundColor:i%2===0?'#0A1525':'#081020',borderTopLeftRadius:4,borderTopRightRadius:4}}>
-                {[...Array(Math.floor(b.h/22))].map((_,r)=>[...Array(Math.floor(b.w/15))].map((_,c)=>(
-                  <View key={`${r}${c}`} style={{position:'absolute',top:5+r*20,left:3+c*13,
-                    width:9,height:11,backgroundColor:(r*3+c)%3===0?'#FFD700':'transparent',opacity:0.55,borderRadius:1}}/>
-                )))}
-              </View>
-            );
-          })}
-        </View>
+        <View style={s.sky} />
 
-        {/* Road strips */}
-        {dynamicStrips.map((strip,i)=>(
-          <View key={i} style={{position:'absolute',top:strip.y,
-            left:VP_X-strip.w/2,width:strip.w,height:strip.h+1,
-            backgroundColor:strip.dark?'#1C2030':'#202438'}}/>
-        ))}
+        {/* Road Background */}
+        <View style={{position:'absolute',top:VP_Y,left:0,right:0,bottom:0,backgroundColor:'#1C2030'}} />
 
-        {/* Lane dividers */}
-        {dynamicDividers.map((d,i)=>(
-          <React.Fragment key={i}>
-            <View style={{position:'absolute',left:d.x1,top:d.y,width:d.w,height:d.h,backgroundColor:'rgba(255,255,255,0.18)',borderRadius:1}}/>
-            <View style={{position:'absolute',left:d.x2,top:d.y,width:d.w,height:d.h,backgroundColor:'rgba(255,255,255,0.18)',borderRadius:1}}/>
-          </React.Fragment>
-        ))}
-
-        {/* Road edges */}
-        {dynamicStrips.map((strip,i)=>(
-          <React.Fragment key={`e${i}`}>
-            <View style={{position:'absolute',top:strip.y,left:VP_X-strip.w/2-3,width:3,height:strip.h+1,backgroundColor:'#FF6B35',opacity:0.5}}/>
-            <View style={{position:'absolute',top:strip.y,left:VP_X+strip.w/2,width:3,height:strip.h+1,backgroundColor:'#FF6B35',opacity:0.5}}/>
-          </React.Fragment>
-        ))}
-
-        {/* Side Pillars & Connecting Arches */}
-        {dynamicPillars.map(p=>(
-          <React.Fragment key={p.key}>
-            {/* Left pillar */}
-            <View style={{position:'absolute',left:p.lx,top:p.y,width:p.w,height:p.h,backgroundColor:'#4F5D73',borderColor:'#343E4F',borderWidth:Math.max(1,1.5*p.sc),borderRadius:2}}/>
-            {/* Right pillar */}
-            <View style={{position:'absolute',left:p.rx,top:p.y,width:p.w,height:p.h,backgroundColor:'#4F5D73',borderColor:'#343E4F',borderWidth:Math.max(1,1.5*p.sc),borderRadius:2}}/>
-            {/* Connecting Overhead Arch */}
-            <View style={{position:'absolute',left:p.ax,top:p.ay,width:p.aw,height:p.ah,backgroundColor:'#3A4454',borderRadius:2}}/>
-          </React.Fragment>
-        ))}
+        {/* Static Dividers */}
+        {[0.1, 0.3, 0.5, 0.7, 0.9].map((z, i) => {
+          const sy = sY(z);
+          const w = Math.max(2, 6 * z);
+          const h = Math.max(5, 30 * z);
+          return (
+            <React.Fragment key={i}>
+              <View style={{position:'absolute', left: lX(0, z) - w/2, top: sy - h/2, width: w, height: h, backgroundColor: 'rgba(255,255,255,0.3)', borderRadius: 2}} />
+              <View style={{position:'absolute', left: lX(2, z) - w/2, top: sy - h/2, width: w, height: h, backgroundColor: 'rgba(255,255,255,0.3)', borderRadius: 2}} />
+            </React.Fragment>
+          );
+        })}
 
         {/* Obstacles - pool-based rendering */}
         {obsPool.map((p, idx) => {
@@ -453,11 +366,11 @@ export default function MetroRush({onClose,onPlayAgain}:Props) {
 
 const s=StyleSheet.create({
   c:{flex:1,backgroundColor:colors.bg,alignItems:'center',justifyContent:'center',gap:14,padding:spacing.md},
-  title:{color:'#FF6B35',fontSize:30,fontWeight:'900',letterSpacing:4,textShadowColor:'rgba(255,107,53,0.6)',textShadowOffset:{width:0,height:0},textShadowRadius:10},
+  title:{color:'#FF6B35',fontSize:30,fontWeight:'900',letterSpacing:4},
   card:{backgroundColor:colors.bgCard,borderRadius:radius.lg,padding:18,borderWidth:1,borderColor:colors.border,width:Math.min(SW-64,340),alignItems:'center',gap:5},
   cardHead:{color:colors.textPrimary,fontSize:15,fontWeight:'800',marginBottom:4},
   cardTx:{color:colors.textSecondary,fontSize:13,textAlign:'center'},
-  btn:{flexDirection:'row',alignItems:'center',gap:6,backgroundColor:'#FF6B35',paddingVertical:14,paddingHorizontal:32,borderRadius:radius.full,shadowColor:'#FF6B35',shadowOffset:{width:0,height:0},shadowOpacity:0.6,shadowRadius:12,elevation:8},
+  btn:{flexDirection:'row',alignItems:'center',gap:6,backgroundColor:'#FF6B35',paddingVertical:14,paddingHorizontal:32,borderRadius:radius.full},
   btnt:{color:colors.bgDeep,fontSize:16,fontWeight:'900',letterSpacing:1},
   ol:{borderWidth:1.5,borderColor:colors.border,paddingVertical:10,paddingHorizontal:spacing.xl,borderRadius:radius.full},
   olt:{color:colors.textSecondary,fontSize:14,fontWeight:'600'},
@@ -470,7 +383,7 @@ const s=StyleSheet.create({
   game:{width:GW,height:GH,backgroundColor:'#040C18',borderRadius:radius.lg,borderWidth:2,borderColor:'#1A2E4A',overflow:'hidden',position:'relative'},
   gflash:{borderColor:colors.error,backgroundColor:'rgba(255,68,68,0.07)'},
   sky:{position:'absolute',top:0,left:0,right:0,height:VP_Y+10,backgroundColor:'#040C18',overflow:'hidden'},
-  moon:{position:'absolute',top:14,right:22,width:22,height:22,borderRadius:11,backgroundColor:'#FFFDE0',shadowColor:'#FFFDE0',shadowOffset:{width:0,height:0},shadowOpacity:0.8,shadowRadius:8},
+  moon:{position:'absolute',top:14,right:22,width:22,height:22,borderRadius:11,backgroundColor:'#FFFDE0'},
   rc:{backgroundColor:colors.bgCard,borderRadius:radius.xl,padding:26,alignItems:'center',gap:8,borderWidth:1,borderColor:colors.border,width:Math.min(SW-64,340),...shadow.card},
   crring:{width:80,height:80,borderRadius:40,backgroundColor:'rgba(255,107,53,0.1)',borderWidth:2,borderColor:'#FF6B35',alignItems:'center',justifyContent:'center',marginBottom:4},
   rtitle:{color:colors.textPrimary,fontSize:22,fontWeight:'900',letterSpacing:3},

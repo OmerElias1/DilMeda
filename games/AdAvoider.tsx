@@ -411,7 +411,6 @@ export default function AdAvoider({ onClose, onPlayAgain }: Props) {
             }
           ]}
         >
-          <View style={s.playerGlow} />
           <Shield color={colors.gold} size={34} fill="rgba(255,215,0,0.2)" />
         </RNAnimated.View>
       </View>
@@ -501,10 +500,7 @@ const s = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  playerGlow: {
-    position: 'absolute', width: 56, height: 56, borderRadius: 28,
-    backgroundColor: 'rgba(255,215,0,0.12)',
-  },
+
 
   // ── Result ──
   resultCard: {

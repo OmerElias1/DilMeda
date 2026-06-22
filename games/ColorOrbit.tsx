@@ -469,7 +469,6 @@ export default function ColorOrbit({ onClose, onPlayAgain }: Props) {
                 top: -BEAM_SIZE / 2,
                 transform: [{ translateY: b.yAnim }],
                 backgroundColor: COLORS[b.colorIdx],
-                shadowColor: COLORS[b.colorIdx],
               },
             ]}
             pointerEvents="none"
@@ -521,7 +520,6 @@ const s = StyleSheet.create({
   titleRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   gameTitle: {
     color: '#FF00CC', fontSize: 30, fontWeight: '900', letterSpacing: 4,
-    textShadowColor: 'rgba(255,0,204,0.6)', textShadowOffset: { width: 0, height: 0 }, textShadowRadius: 10,
   },
   infoCard: {
     backgroundColor: colors.bgCard, borderRadius: radius.lg, padding: 18,
@@ -534,7 +532,6 @@ const s = StyleSheet.create({
     flexDirection: 'row', alignItems: 'center', gap: 6,
     backgroundColor: '#FF00CC', paddingVertical: 14, paddingHorizontal: 32,
     borderRadius: radius.full,
-    shadowColor: '#FF00CC', shadowOffset: { width: 0, height: 0 }, shadowOpacity: 0.6, shadowRadius: 12, elevation: 8,
   },
   startBtnText: { color: colors.bgDeep, fontSize: 16, fontWeight: '900', letterSpacing: 1 },
   btnOutline: {

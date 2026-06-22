@@ -66,9 +66,6 @@ function TreeVisual({ height }: { height: number }) {
 
   return (
     <View style={tv.wrap}>
-      {/* Shadow on ground */}
-      <View style={[tv.groundShadow, { width: canopySize * 0.8 }]} />
-
       {/* Trunk */}
       <View style={[tv.trunk, { height: trunkH, width: trunkW, borderRadius: trunkW / 3 }]}>
         <View style={[tv.trunkHighlight, { height: trunkH - 6 }]} />
@@ -159,7 +156,6 @@ const tv = StyleSheet.create({
   fruit: {
     position: 'absolute', width: 10, height: 10, borderRadius: 5,
     backgroundColor: '#FF6B6B', zIndex: 5,
-    shadowColor: '#FF6B6B', shadowOpacity: 0.6, shadowRadius: 4, elevation: 3,
   },
   sproutStem: { width: 4, backgroundColor: '#22A849', borderRadius: 2, position: 'absolute', bottom: 16 },
   sproutLeafL: {
@@ -355,8 +351,6 @@ export default function TreeGrower({ onClose }: Props) {
 
         {/* Tree Display */}
         <View style={s.treeArea}>
-          <Animated.View style={[s.treeGlow, { opacity: glowOpacity }]} />
-
           {pointsEarned !== null && (
             <Animated.Text style={[s.pointsPopup, {
               opacity: pointsAnim,
@@ -474,13 +468,10 @@ const s = StyleSheet.create({
     paddingVertical: 24, paddingHorizontal: spacing.lg, gap: 10,
     position: 'relative', overflow: 'hidden', minHeight: 340,
   },
-  treeGlow: {
-    position: 'absolute', width: 220, height: 220, borderRadius: 110,
-    backgroundColor: 'rgba(0,255,136,0.08)', top: 30,
-  },
+
   pointsPopup: {
     position: 'absolute', top: 10, color: colors.gold, fontSize: 22, fontWeight: '900',
-    textShadowColor: colors.gold, textShadowOffset: { width: 0, height: 0 }, textShadowRadius: 8, zIndex: 10,
+    zIndex: 10,
   },
   dropWrap: { position: 'absolute', top: 10, zIndex: 5 },
   stageBadge: {
@@ -503,7 +494,6 @@ const s = StyleSheet.create({
   dot: { width: 20, height: 20, borderRadius: 10, borderWidth: 2 },
   dotActive: {
     backgroundColor: colors.neon, borderColor: colors.neon,
-    shadowColor: colors.neon, shadowOpacity: 0.8, shadowRadius: 4, elevation: 4,
   },
   dotUsed: { backgroundColor: 'transparent', borderColor: colors.border },
   bonusRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },

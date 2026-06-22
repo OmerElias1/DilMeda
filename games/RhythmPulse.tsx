@@ -378,7 +378,6 @@ export default function RhythmPulse({ onClose, onPlayAgain }: Props) {
                 top: -NOTE_SIZE / 2,
                 transform: [{ translateY: n.yAnim }],
                 backgroundColor: COLORS[n.lane],
-                shadowColor: COLORS[n.lane],
               },
             ]}
           />
@@ -431,7 +430,6 @@ const s = StyleSheet.create({
   titleRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   gameTitle: {
     color: '#00FFCC', fontSize: 30, fontWeight: '900', letterSpacing: 4,
-    textShadowColor: 'rgba(0,255,204,0.6)', textShadowOffset: { width: 0, height: 0 }, textShadowRadius: 10,
   },
   infoCard: {
     backgroundColor: colors.bgCard, borderRadius: radius.lg, padding: 18,
@@ -444,7 +442,6 @@ const s = StyleSheet.create({
     flexDirection: 'row', alignItems: 'center', gap: 6,
     backgroundColor: '#00FFCC', paddingVertical: 14, paddingHorizontal: 32,
     borderRadius: radius.full,
-    shadowColor: '#00FFCC', shadowOffset: { width: 0, height: 0 }, shadowOpacity: 0.6, shadowRadius: 12, elevation: 8,
   },
   startBtnText: { color: colors.bgDeep, fontSize: 16, fontWeight: '900', letterSpacing: 1 },
   btnOutline: {
@@ -498,7 +495,6 @@ const s = StyleSheet.create({
   },
   feedbackText: {
     fontSize: 22, fontWeight: '900', letterSpacing: 2,
-    textShadowColor: 'rgba(0,0,0,0.5)', textShadowOffset: { width: 1, height: 1 }, textShadowRadius: 3,
   },
   resultCard: {
     backgroundColor: colors.bgCard, borderRadius: radius.xl, padding: 26,

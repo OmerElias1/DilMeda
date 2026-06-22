@@ -13,7 +13,7 @@ type AuthContextType = {
   setIsRecoveryMode: (val: boolean) => void;
   activeTournamentId: string | null;
   setActiveTournamentId: (id: string | null) => void;
-  signUp: (identifier: { email?: string; phone?: string }, password: string, name?: string) => Promise<{ error: string | null; needsVerification?: boolean }>;
+  signUp: (identifier: { email?: string; phone?: string }, password: string, name?: string, phoneNumber?: string) => Promise<{ error: string | null; needsVerification?: boolean }>;
   signIn: (identifier: { email?: string; phone?: string }, password: string) => Promise<{ error: string | null; needsVerification?: boolean }>;
   signOut: () => Promise<void>;
   refreshProfile: () => Promise<void>;
@@ -61,7 +61,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             phone_or_email: session.user.email || session.user.phone || '',
             username: session.user.user_metadata?.full_name || (session.user.email ? session.user.email.split('@')[0] : (session.user.phone || 'Player')),
             full_name: session.user.user_metadata?.full_name || null,
-            phone_number: session.user.phone || session.user.user_metadata?.phone_number || null,
+            phone_number: session.user.user_metadata?.phone_number || null,
             points: 0,
             avatar_seed: uid,
           })
@@ -77,16 +77,26 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [user, fetchProfile]);
 
   const handleAuthDeepLink = useCallback(async (rawUrl: string) => {
-    // decode the URI in case characters like # are encoded as %23
-    const url = decodeURI(rawUrl);
-    
-    // We need to parse BOTH the normal query parameters (for recovery=true) and the hash parameters
-    const queryString = url.includes('?') ? url.split('?')[1].split('#')[0] : '';
-    const hashString = url.includes('#') ? url.split('#')[1] : '';
+    if (!rawUrl) return;
+    // Decode the URI — Supabase sometimes encodes # as %23
+    const url = decodeURIComponent(decodeURI(rawUrl));
+
+    // The reset link arrives as: dilmeda://#access_token=...&refresh_token=...&type=recovery
+    // Split on the LAST '#' to get the hash fragment
+    const hashIndex = url.lastIndexOf('#');
+    const hashString = hashIndex >= 0 ? url.slice(hashIndex + 1) : '';
+    const questionIndex = url.indexOf('?');
+    const queryString = questionIndex >= 0
+      ? url.slice(questionIndex + 1, hashIndex >= 0 ? hashIndex : undefined)
+      : '';
 
     const parseParams = (str: string) => str.split('&').reduce((acc, current) => {
-      const [key, value] = current.split('=');
-      if (key && value) acc[key] = decodeURIComponent(value);
+      const eqIndex = current.indexOf('=');
+      if (eqIndex > 0) {
+        const key = current.slice(0, eqIndex);
+        const value = decodeURIComponent(current.slice(eqIndex + 1));
+        acc[key] = value;
+      }
       return acc;
     }, {} as Record<string, string>);
 
@@ -96,21 +106,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const accessToken = hashParams['access_token'] || queryParams['access_token'];
     const refreshToken = hashParams['refresh_token'] || queryParams['refresh_token'];
     const type = hashParams['type'] || queryParams['type'];
-    const recoveryParam = queryParams['recovery'];
 
-    if ((accessToken && refreshToken && type === 'recovery') || recoveryParam === 'true') {
-      // Set recovery mode BEFORE setting session to prevent race condition with navigation
+    if (accessToken && refreshToken && type === 'recovery') {
+      // Set recovery mode BEFORE setting session to prevent race with navigation
       setIsRecoveryMode(true);
-
-      if (accessToken && refreshToken) {
-        const { error } = await supabase.auth.setSession({ access_token: accessToken, refresh_token: refreshToken });
-        if (error) {
-          console.error('Error setting session from recovery link:', error);
-        }
+      const { error } = await supabase.auth.setSession({ access_token: accessToken, refresh_token: refreshToken });
+      if (error) {
+        console.error('Error setting session from recovery link:', error);
       }
     } else if (accessToken && refreshToken && type === 'signup') {
-      // Email confirmation link clicked — set session to log user in automatically
-      console.log('Email confirmed via deep link — logging in...');
+      // Email confirmation link clicked — log user in automatically
       const { error } = await supabase.auth.setSession({ access_token: accessToken, refresh_token: refreshToken });
       if (error) {
         console.error('Error setting session from email confirmation link:', error);
@@ -119,12 +124,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const incomingUrl = useURL();
-  
+
+  // Handle deep link when app is already open
   useEffect(() => {
     if (incomingUrl) {
       handleAuthDeepLink(incomingUrl);
     }
   }, [incomingUrl, handleAuthDeepLink]);
+
+  // Handle deep link when app is cold-started from the reset email link
+  useEffect(() => {
+    Linking.getInitialURL().then(url => {
+      if (url) handleAuthDeepLink(url);
+    });
+  }, [handleAuthDeepLink]);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -150,20 +163,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     };
   }, [fetchProfile]);
 
-  const signUp = async (identifier: { email?: string; phone?: string }, password: string, name?: string) => {
+  const signUp = async (identifier: { email?: string; phone?: string }, password: string, name?: string, phoneNumber?: string) => {
     const authPayload: any = {
       password,
       options: {
         data: {
           full_name: name || null,
+          // Store phone number in metadata for contact purposes (not used for auth)
+          phone_number: phoneNumber || null,
         },
       },
     };
     if (identifier.email) {
       authPayload.email = identifier.email;
       authPayload.options.emailRedirectTo = 'dilmeda://auth/callback';
-    } else if (identifier.phone) {
-      authPayload.phone = identifier.phone;
     }
     const { data, error } = await supabase.auth.signUp(authPayload);
     if (error) return { error: error.message, needsVerification: false };

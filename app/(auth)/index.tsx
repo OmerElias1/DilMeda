@@ -9,22 +9,18 @@ import { useLanguage } from '@/hooks/useLanguage';
 import { supabase } from '@/lib/supabase';
 import { colors, spacing, radius, shadow } from '@/constants/theme';
 import ParticleBackground from '@/components/ParticleBackground';
-import { Mail, Phone as PhoneIcon } from 'lucide-react-native';
 
 const { width: W, height: H } = Dimensions.get('window');
 
 export default function AuthScreen() {
-  const { signIn, signUp, session, isRecoveryMode, setIsRecoveryMode, verifyOtp, sendPasswordResetOtp } = useAuth();
+  const { signIn, signUp, session, isRecoveryMode, setIsRecoveryMode } = useAuth();
   const { lang, setLang, t } = useLanguage();
-  const [mode, setMode] = useState<'signin' | 'signup' | 'forgot' | 'update_password' | 'verify_email' | 'verify_otp'>('signin');
-  const [authMethod, setAuthMethod] = useState<'email' | 'phone'>('email');
+  const [mode, setMode] = useState<'signin' | 'signup' | 'forgot' | 'update_password' | 'verify_email'>('signin');
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPass, setConfirmPass] = useState('');
   const [name, setName] = useState('');
-  const [otp, setOtp] = useState('');
-  const [otpType, setOtpType] = useState<'signup' | 'recovery'>('signup');
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [loading, setLoading] = useState(false);
@@ -65,9 +61,6 @@ export default function AuthScreen() {
     ).start();
   }, []);
 
-  /** Returns the current identifier value (trimmed) */
-  const getIdentifier = () => authMethod === 'email' ? email.trim() : phone.trim();
-
   const handleSubmit = async () => {
     setError('');
     setSuccess('');
@@ -105,52 +98,43 @@ export default function AuthScreen() {
       return;
     }
 
-    if (mode === 'signup') {
-      if (!name.trim()) {
-        setError(t('errorFullNameReq'));
+    if (mode === 'forgot') {
+      if (!email.trim()) {
+        setError(t('errorEmailReq'));
         return;
       }
-    }
-
-    // Validate identifier
-    const identifier = getIdentifier();
-    if (!identifier) {
-      setError(authMethod === 'email' ? t('errorEmailReq') : t('errorPhoneReq'));
-      return;
-    }
-
-    if (mode === 'forgot') {
       setLoading(true);
       try {
-        if (authMethod === 'email') {
-          const Linking = await import('expo-linking');
-          const redirectTo = Linking.createURL('/(auth)', { queryParams: { recovery: 'true' } });
-          
-          const { error: resetErr } = await supabase.auth.resetPasswordForEmail(identifier, {
-            redirectTo,
-          });
-          if (resetErr) {
-            setError(resetErr.message);
-          } else {
-            setSuccess(t('successResetLink'));
-          }
+        // Use the app scheme as the redirect — Supabase appends #access_token=...&type=recovery
+        const { error: resetErr } = await supabase.auth.resetPasswordForEmail(email.trim(), {
+          redirectTo: 'dilmeda://',
+        });
+        if (resetErr) {
+          setError(resetErr.message);
         } else {
-          // Phone password reset
-          const { error: resetErr } = await sendPasswordResetOtp(identifier);
-          if (resetErr) {
-            setError(resetErr);
-          } else {
-            setSuccess(t('authPhoneOtpSent'));
-            setOtpType('recovery');
-            setMode('verify_otp');
-            setOtp('');
-          }
+          setSuccess('Reset link sent! Check your email and tap the link to set a new password.');
         }
       } catch (err: any) {
         setError(err?.message || t('failedSendResetLink'));
       } finally {
         setLoading(false);
       }
+      return;
+    }
+
+    if (mode === 'signup') {
+      if (!name.trim()) {
+        setError(t('errorFullNameReq'));
+        return;
+      }
+      if (!phone.trim()) {
+        setError('Phone number is required.');
+        return;
+      }
+    }
+
+    if (!email.trim()) {
+      setError(t('errorEmailReq'));
       return;
     }
 
@@ -168,17 +152,13 @@ export default function AuthScreen() {
     }
 
     setLoading(true);
-    const idObj = authMethod === 'email'
-      ? { email: identifier }
-      : { phone: identifier };
 
     const result = mode === 'signin'
-      ? await signIn(idObj, password)
-      : await signUp(idObj, password, name.trim());
+      ? await signIn({ email: email.trim() }, password)
+      : await signUp({ email: email.trim() }, password, name.trim(), phone.trim());
     setLoading(false);
 
     if (result.error) {
-      // Friendly message when email is not yet confirmed
       if (
         result.error.toLowerCase().includes('email not confirmed') ||
         result.error.toLowerCase().includes('email_not_confirmed')
@@ -191,57 +171,13 @@ export default function AuthScreen() {
     } else {
       if (mode === 'signup') {
         if (result.needsVerification) {
-          if (authMethod === 'email') {
-            setMode('verify_email');
-          } else {
-            // For phone signup, Supabase sends OTP — transition to verify_otp
-            setSuccess(t('authPhoneOtpSent'));
-            setOtpType('signup');
-            setMode('verify_otp');
-            setOtp('');
-          }
+          setMode('verify_email');
         } else {
           router.replace('/(tabs)');
         }
       } else {
         router.replace('/(tabs)');
       }
-    }
-  };
-
-  const handleVerifyOtp = async () => {
-    if (!otp.trim()) {
-      setError(t('errorOtpReq'));
-      return;
-    }
-    setError('');
-    setSuccess('');
-    setLoading(true);
-
-    const identifier = getIdentifier();
-    const isPhone = authMethod === 'phone';
-    const params = isPhone
-      ? { phone: identifier, token: otp.trim(), type: otpType }
-      : { email: identifier, token: otp.trim(), type: otpType };
-
-    try {
-      const result = await verifyOtp(params);
-      if (result.error) {
-        setError(result.error);
-      } else {
-        if (otpType === 'recovery') {
-          setSuccess(t('successOtpVerified'));
-          setMode('update_password');
-          setPassword('');
-          setConfirmPass('');
-        } else {
-          router.replace('/(tabs)');
-        }
-      }
-    } catch (err: any) {
-      setError(err?.message || 'Verification failed');
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -259,7 +195,6 @@ export default function AuthScreen() {
         setError(resendErr.message);
       } else {
         setSuccess(t('successResendEmail'));
-        // Start 60-second cooldown
         setResendCooldown(60);
         resendTimer.current = setInterval(() => {
           setResendCooldown(prev => {
@@ -282,12 +217,10 @@ export default function AuthScreen() {
     setError('');
     setSuccess('');
     setName('');
+    setPhone('');
     setPassword('');
     setConfirmPass('');
-    setOtp('');
   };
-
-  const glowOpacity = glowAnim.interpolate({ inputRange: [0, 1], outputRange: [0.4, 1] });
 
   return (
     <View style={styles.root}>
@@ -331,7 +264,6 @@ export default function AuthScreen() {
               },
             ]}
           >
-
             <View style={styles.logoRing}>
               <Image
                 source={require('@/assets/images/image.png')}
@@ -345,7 +277,7 @@ export default function AuthScreen() {
           {/* Card */}
           <View style={styles.card}>
             {/* Mode toggle (Sign In / Sign Up) */}
-            {mode !== 'forgot' && mode !== 'update_password' && mode !== 'verify_email' && (
+            {mode !== 'update_password' && mode !== 'verify_email' && mode !== 'forgot' && (
               <View style={styles.modeToggle}>
                 <TouchableOpacity
                   style={[styles.modeBtn, mode === 'signin' && styles.modeBtnActive]}
@@ -375,8 +307,6 @@ export default function AuthScreen() {
                     ? t('joinTournament')
                     : mode === 'forgot'
                     ? t('resetPasswordTitle')
-                    : mode === 'verify_otp'
-                    ? t('verifyOtpTitle')
                     : t('setNewPassword')}
                 </Text>
                 <Text style={styles.cardSub}>
@@ -386,43 +316,13 @@ export default function AuthScreen() {
                     ? t('signUpSub')
                     : mode === 'forgot'
                     ? t('forgotSub')
-                    : mode === 'verify_otp'
-                    ? `${t('verifyOtpSub')} ${getIdentifier()}`
                     : t('setNewSub')}
                 </Text>
               </>
             )}
 
-            {/* ── Email / Phone method toggle ── */}
-            {mode !== 'update_password' && mode !== 'verify_email' && mode !== 'verify_otp' && (
-              <View style={styles.methodToggle}>
-                <TouchableOpacity
-                  style={[styles.methodBtn, authMethod === 'email' && styles.methodBtnActive]}
-                  onPress={() => { setAuthMethod('email'); setError(''); }}
-                >
-                  <View style={styles.methodBtnInner}>
-                    <Mail size={16} color={authMethod === 'email' ? colors.gold : colors.textMuted} strokeWidth={2.5} />
-                    <Text style={[styles.methodBtnText, authMethod === 'email' && styles.methodBtnTextActive]}>
-                      {t('authMethodEmail')}
-                    </Text>
-                  </View>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={[styles.methodBtn, authMethod === 'phone' && styles.methodBtnActive]}
-                  onPress={() => { setAuthMethod('phone'); setError(''); }}
-                >
-                  <View style={styles.methodBtnInner}>
-                    <PhoneIcon size={16} color={authMethod === 'phone' ? colors.gold : colors.textMuted} strokeWidth={2.5} />
-                    <Text style={[styles.methodBtnText, authMethod === 'phone' && styles.methodBtnTextActive]}>
-                      {t('authMethodPhone')}
-                    </Text>
-                  </View>
-                </TouchableOpacity>
-              </View>
-            )}
-
             {/* Full Name (signup only) */}
-            {mode !== 'verify_email' && mode === 'signup' && (
+            {mode === 'signup' && (
               <View style={styles.inputGroup}>
                 <Text style={styles.inputLabel}>{t('fullName')}</Text>
                 <TextInput
@@ -435,53 +335,39 @@ export default function AuthScreen() {
               </View>
             )}
 
-            {/* Email or Phone input */}
-            {mode !== 'update_password' && mode !== 'verify_email' && mode !== 'verify_otp' && (
+            {/* Email input */}
+            {mode !== 'update_password' && mode !== 'verify_email' && (
               <View style={styles.inputGroup}>
-                <Text style={styles.inputLabel}>
-                  {authMethod === 'email' ? t('email') : t('phoneNumber')}
-                </Text>
-                {(authMethod === 'email') ? (
-                  <TextInput
-                    style={styles.input}
-                    placeholder="you@example.com"
-                    placeholderTextColor={colors.textMuted}
-                    value={email}
-                    onChangeText={setEmail}
-                    autoCapitalize="none"
-                    keyboardType="email-address"
-                  />
-                ) : (
-                  <TextInput
-                    style={styles.input}
-                    placeholder="+251911223344"
-                    placeholderTextColor={colors.textMuted}
-                    value={phone}
-                    onChangeText={handlePhoneChange}
-                    keyboardType="phone-pad"
-                  />
-                )}
+                <Text style={styles.inputLabel}>{t('email')}</Text>
+                <TextInput
+                  style={styles.input}
+                  placeholder="you@example.com"
+                  placeholderTextColor={colors.textMuted}
+                  value={email}
+                  onChangeText={setEmail}
+                  autoCapitalize="none"
+                  keyboardType="email-address"
+                />
               </View>
             )}
 
-            {/* OTP Verification input */}
-            {mode === 'verify_otp' && (
+            {/* Phone number (signup only — required for contact) */}
+            {mode === 'signup' && (
               <View style={styles.inputGroup}>
-                <Text style={styles.inputLabel}>{t('otpLabel')}</Text>
+                <Text style={styles.inputLabel}>{t('phoneNumber')}</Text>
                 <TextInput
                   style={styles.input}
-                  placeholder="123456"
+                  placeholder="+251911223344"
                   placeholderTextColor={colors.textMuted}
-                  value={otp}
-                  onChangeText={setOtp}
-                  keyboardType="number-pad"
-                  maxLength={6}
+                  value={phone}
+                  onChangeText={handlePhoneChange}
+                  keyboardType="phone-pad"
                 />
               </View>
             )}
 
             {/* Password */}
-            {mode !== 'forgot' && mode !== 'verify_email' && mode !== 'verify_otp' && (
+            {mode !== 'verify_email' && mode !== 'forgot' && (
               <View style={styles.inputGroup}>
                 <Text style={styles.inputLabel}>
                   {mode === 'update_password' ? t('newPassword') : t('passwordLabel')}
@@ -535,7 +421,7 @@ export default function AuthScreen() {
             {mode !== 'verify_email' && (
               <TouchableOpacity
                 style={[styles.submitBtn, loading && styles.submitBtnDisabled]}
-                onPress={mode === 'verify_otp' ? handleVerifyOtp : handleSubmit}
+                onPress={handleSubmit}
                 disabled={loading}
               >
                 <Text style={styles.submitBtnText}>
@@ -547,12 +433,11 @@ export default function AuthScreen() {
                     ? t('createAccount')
                     : mode === 'forgot'
                     ? t('sendResetLink')
-                    : mode === 'verify_otp'
-                    ? t('verifyOtpBtn')
                     : t('updatePassword')}
                 </Text>
               </TouchableOpacity>
             )}
+
             {mode === 'verify_email' ? (
               // ── Email Verification Sent Screen ─────────────────────────
               <View style={styles.verifyContainer}>
@@ -597,7 +482,7 @@ export default function AuthScreen() {
                   <Text style={styles.submitBtnText}>{t('backToSignIn')}</Text>
                 </TouchableOpacity>
               </View>
-            ) : (mode === 'forgot' || mode === 'verify_otp') ? (
+            ) : mode === 'forgot' ? (
               <TouchableOpacity
                 style={styles.switchMode}
                 onPress={() => { setMode('signin'); resetFormState(); }}
@@ -674,46 +559,11 @@ const styles = StyleSheet.create({
   modeBtnActive: { backgroundColor: colors.gold },
   modeBtnText: { color: colors.textMuted, fontSize: 14, fontWeight: '600' },
   modeBtnTextActive: { color: colors.bgDeep, fontWeight: '800' },
-  // Email / Phone method toggle
-  methodToggle: {
-    flexDirection: 'row',
-    backgroundColor: 'rgba(255,255,255,0.05)',
-    borderRadius: radius.md,
-    padding: 3,
-    marginBottom: spacing.md,
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.08)',
-  },
-  methodBtn: {
-    flex: 1,
-    paddingVertical: 8,
-    borderRadius: radius.sm,
-    alignItems: 'center',
-  },
-  methodBtnActive: {
-    backgroundColor: 'rgba(255,215,0,0.15)',
-    borderWidth: 1,
-    borderColor: colors.gold,
-  },
-  methodBtnInner: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 6,
-  },
-  methodBtnText: {
-    color: colors.textMuted,
-    fontSize: 13,
-    fontWeight: '600',
-  },
-  methodBtnTextActive: {
-    color: colors.gold,
-    fontWeight: '800',
-  },
   cardTitle: { color: colors.textPrimary, fontSize: 22, fontWeight: '800', marginBottom: 4 },
   cardSub: { color: colors.textSecondary, fontSize: 13, marginBottom: spacing.lg },
   inputGroup: { marginBottom: spacing.md },
   inputLabel: { color: colors.textSecondary, fontSize: 12, fontWeight: '600', marginBottom: 6, letterSpacing: 0.5 },
+  optionalTag: { color: colors.textMuted, fontWeight: '400', fontSize: 11 },
   input: {
     backgroundColor: colors.bgDeep, borderRadius: radius.md, padding: spacing.md,
     color: colors.textPrimary, fontSize: 15, borderWidth: 1, borderColor: colors.border,
@@ -743,15 +593,8 @@ const styles = StyleSheet.create({
   switchMode: { alignItems: 'center', marginTop: spacing.md },
   switchModeText: { color: colors.textSecondary, fontSize: 13 },
   switchModeLink: { color: colors.gold, fontWeight: '700' },
-  forgotBtn: {
-    alignSelf: 'flex-end',
-    marginTop: 6,
-  },
-  forgotBtnText: {
-    color: colors.gold,
-    fontSize: 13,
-    fontWeight: '600',
-  },
+  forgotBtn: { alignSelf: 'flex-end', marginTop: 6 },
+  forgotBtnText: { color: colors.gold, fontSize: 13, fontWeight: '600' },
   langToggleContainer: {
     position: 'absolute',
     top: 60,

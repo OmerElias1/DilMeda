@@ -189,7 +189,6 @@ const styles = StyleSheet.create({
   expiredText: { color: colors.error, fontSize: 16, textAlign: 'center', fontWeight: '600' },
   gameTitle: {
     color: colors.gold, fontSize: 26, fontWeight: '900', letterSpacing: 3,
-    textShadowColor: colors.gold, textShadowOffset: { width: 0, height: 0 }, textShadowRadius: 10,
   },
   gameSub: { color: colors.textSecondary, fontSize: 13, textAlign: 'center' },
   hud: { flexDirection: 'row', gap: spacing.lg, marginBottom: 4 },

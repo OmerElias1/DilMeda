@@ -12,7 +12,7 @@ const GH = 480;
 const PADDLE_W = 75;
 const PADDLE_H = 12;
 const BALL_SIZE = 14;
-const POOL_SIZE = 6;
+const POOL_SIZE = 3;
 
 type Spark = { id: number; x: number; y: number; vx: number; vy: number; size: number; alpha: number };
 type Props = { onClose: () => void; onPlayAgain?: () => void };
@@ -52,43 +52,14 @@ export default function LaserDeflector({ onClose, onPlayAgain }: Props) {
   const [phase, setPhase] = useState<'ready' | 'playing' | 'done'>('ready');
   const [score, setScore] = useState(0);
   const [lives, setLives] = useState(3);
-  const [sparks, setSparks] = useState<Spark[]>([]);
-  // Pool render state: only color per slot changes (active drives visibility via position)
-  const [slotColors, setSlotColors] = useState<string[]>(Array(POOL_SIZE).fill(COLORS[0]));
-
-  const sparksRef = useRef<Spark[]>([]);
   const paddleXRef = useRef((GW - PADDLE_W) / 2);
   const scoreRef = useRef(0);
   const livesRef = useRef(3);
   const activeRef = useRef(false);
   const loopRef = useRef<number | null>(null);
   const tickRef = useRef(0);
-  const sparkId = useRef(0);
-  const slotColorsRef = useRef(slotColors);
-  useEffect(() => { slotColorsRef.current = slotColors; }, [slotColors]);
 
   const paddleXAnim = useRef(new A.Value((GW - PADDLE_W) / 2)).current;
-  const glowAnim = useRef(new A.Value(0)).current;
-  const resultScale = useRef(new A.Value(0)).current;
-
-  // Title glow loop - only on ready screen
-  useEffect(() => {
-    if (phase !== 'ready') return;
-    const anim = A.loop(A.sequence([
-      A.timing(glowAnim, { toValue: 1, duration: 1800, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
-      A.timing(glowAnim, { toValue: 0, duration: 1800, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
-    ]));
-    anim.start();
-    return () => anim.stop();
-  }, [phase]);
-
-  useEffect(() => {
-    if (phase === 'done') {
-      A.spring(resultScale, { toValue: 1, friction: 4, tension: 60, useNativeDriver: true }).start();
-    } else {
-      resultScale.setValue(0);
-    }
-  }, [phase]);
 
   const endGame = useCallback(() => {
     activeRef.current = false;
@@ -103,19 +74,6 @@ export default function LaserDeflector({ onClose, onPlayAgain }: Props) {
     endGameSession(scoreRef.current);
   }, [endGameSession]);
 
-  const spawnSparks = (x: number, y: number) => {
-    for (let i = 0; i < 8; i++) {
-      sparksRef.current.push({
-        id: sparkId.current++,
-        x,
-        y,
-        vx: (Math.random() - 0.5) * 6,
-        vy: -(Math.random() * 4 + 2),
-        size: Math.random() * 4 + 2,
-        alpha: 1.0,
-      });
-    }
-  };
 
   const panResponder = useRef(
     PanResponder.create({
@@ -150,21 +108,14 @@ export default function LaserDeflector({ onClose, onPlayAgain }: Props) {
     if (tickRef.current % spawnRate === 0 || !hasActive) {
       const freeIdx = BALL_POOL.findIndex(b => !b.active);
       if (freeIdx !== -1) {
-        const color = COLORS[Math.floor(Math.random() * COLORS.length)];
         const slot = BALL_POOL[freeIdx];
         slot.xVal = Math.random() * (GW - BALL_SIZE * 2) + BALL_SIZE;
         slot.yVal = -10;
         slot.vx = (Math.random() - 0.5) * 4;
         slot.vy = Math.random() * 2 + 2.5 + (scoreRef.current * 0.1);
-        slot.color = color;
         slot.active = true;
         slot.xAnim.setValue(slot.xVal);
         slot.yAnim.setValue(slot.yVal);
-        if (slotColorsRef.current[freeIdx] !== color) {
-          const next = [...slotColorsRef.current];
-          next[freeIdx] = color;
-          setSlotColors(next);
-        }
       }
     }
 
@@ -234,8 +185,6 @@ export default function LaserDeflector({ onClose, onPlayAgain }: Props) {
       b.xAnim.setValue(-BALL_SIZE * 2);
       b.yAnim.setValue(-BALL_SIZE * 2);
     });
-    sparksRef.current = [];
-    setSparks([]);
     tickRef.current = 0;
     setPhase('playing');
     loopRef.current = requestAnimationFrame(gameLoop);
@@ -248,7 +197,7 @@ export default function LaserDeflector({ onClose, onPlayAgain }: Props) {
     };
   }, []);
 
-  const titleOpacity = glowAnim.interpolate({ inputRange: [0, 1], outputRange: [0.5, 1] });
+
 
   if (isExpired) {
     return (
@@ -264,13 +213,11 @@ export default function LaserDeflector({ onClose, onPlayAgain }: Props) {
   if (phase === 'ready') {
     return (
       <View style={s.container}>
-        <A.View style={{ opacity: titleOpacity }}>
-          <View style={s.titleRow}>
-            <ShieldAlert color="#FFCC00" size={26} />
-            <Text style={s.gameTitle}>LASER DEFLECTOR</Text>
-            <ShieldAlert color="#FFCC00" size={26} />
-          </View>
-        </A.View>
+        <View style={s.titleRow}>
+          <ShieldAlert color="#FFCC00" size={26} />
+          <Text style={s.gameTitle}>LASER DEFLECTOR</Text>
+          <ShieldAlert color="#FFCC00" size={26} />
+        </View>
 
         <View style={s.infoCard}>
           <Text style={s.infoHeading}>How to Play</Text>
@@ -297,14 +244,14 @@ export default function LaserDeflector({ onClose, onPlayAgain }: Props) {
   if (phase === 'done') {
     return (
       <View style={s.container}>
-        <A.View style={[s.resultCard, { transform: [{ scale: resultScale }] }]}>
+        <View style={s.resultCard}>
           <View style={s.crashedRing}>
             <Text style={{ fontSize: 38 }}>🛡️💥</Text>
           </View>
           <Text style={s.resultTitle}>SHIELDS BROKEN!</Text>
           <Text style={s.resultScore}>{score}</Text>
           <Text style={s.resultLabel}>LASERS DEFLECTED</Text>
-        </A.View>
+        </View>
 
         <TouchableOpacity style={s.startBtn} onPress={onPlayAgain || startGame} activeOpacity={0.8}>
           <Text style={s.startBtnText}>DEFEND AGAIN</Text>
@@ -341,14 +288,13 @@ export default function LaserDeflector({ onClose, onPlayAgain }: Props) {
       {/* Game area */}
       <View style={s.gameArea} {...panResponder.panHandlers}>
         {/* Pool balls — each driven by its own Animated.Value pair (native thread) */}
-        {BALL_POOL.map((b, idx) => (
+        {BALL_POOL.map((b) => (
           <A.View
             key={b.id}
             style={[
               s.ball,
               {
-                backgroundColor: slotColors[idx],
-                shadowColor: slotColors[idx],
+                backgroundColor: '#00FFCC',
                 transform: [{ translateX: b.xAnim }, { translateY: b.yAnim }],
               },
             ]}
@@ -366,10 +312,7 @@ export default function LaserDeflector({ onClose, onPlayAgain }: Props) {
               top: GH - 45,
             },
           ]}
-        >
-          {/* Neon side highlights */}
-          <View style={s.paddleGlow} />
-        </A.View>
+        />
       </View>
     </View>
   );
@@ -385,7 +328,6 @@ const s = StyleSheet.create({
   titleRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   gameTitle: {
     color: '#FFCC00', fontSize: 30, fontWeight: '900', letterSpacing: 4,
-    textShadowColor: 'rgba(255,204,0,0.6)', textShadowOffset: { width: 0, height: 0 }, textShadowRadius: 10,
   },
   infoCard: {
     backgroundColor: colors.bgCard, borderRadius: radius.lg, padding: 18,
@@ -398,7 +340,6 @@ const s = StyleSheet.create({
     flexDirection: 'row', alignItems: 'center', gap: 6,
     backgroundColor: '#FFCC00', paddingVertical: 14, paddingHorizontal: 32,
     borderRadius: radius.full,
-    shadowColor: '#FFCC00', shadowOffset: { width: 0, height: 0 }, shadowOpacity: 0.6, shadowRadius: 12, elevation: 8,
   },
   startBtnText: { color: colors.bgDeep, fontSize: 16, fontWeight: '900', letterSpacing: 1 },
   btnOutline: {
@@ -439,18 +380,9 @@ const s = StyleSheet.create({
     width: PADDLE_W, height: PADDLE_H,
     borderRadius: 6,
     backgroundColor: '#FFCC00',
-    shadowColor: '#FFCC00',
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.8,
-    shadowRadius: 6,
     elevation: 4,
   },
-  paddleGlow: {
-    position: 'absolute',
-    left: 2, right: 2, top: 1, bottom: 1,
-    backgroundColor: '#FFFDE0',
-    borderRadius: 4,
-  },
+
   resultCard: {
     backgroundColor: colors.bgCard, borderRadius: radius.xl, padding: 26,
     alignItems: 'center', gap: 8, borderWidth: 1, borderColor: colors.border,

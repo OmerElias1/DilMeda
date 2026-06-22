@@ -43,51 +43,30 @@ type Props = { onClose: () => void; onPlayAgain?: () => void };
 // ── Realistic Bird drawn with Views ──────────────────────────────────────────
 function RealisticBird({ wingAnim }: { wingAnim: RNAnimated.Value }) {
   const wingRot = wingAnim.interpolate({ inputRange: [0, 1], outputRange: ['0deg', '-35deg'] });
-  const wingRot2 = wingAnim.interpolate({ inputRange: [0, 1], outputRange: ['0deg', '20deg'] });
   return (
-    <View style={[bird.root, { transform: [{ scaleX: -1 }] }]}>
-      {/* Ambient glow */}
-      <View style={bird.glow} />
-
-      {/* Upper wing (behind body) */}
-      <RNAnimated.View style={[bird.wingUpper, { transform: [{ rotate: wingRot }] }]}>
-        <View style={bird.wingUpperInner} />
-        <View style={bird.wingTip} />
-      </RNAnimated.View>
-
-      {/* Tail feathers */}
-      <View style={bird.tail}>
-        <View style={[bird.feather, { transform: [{ rotate: '10deg' }] }]} />
-        <View style={[bird.feather, { transform: [{ rotate: '-5deg' }] }]} />
-        <View style={[bird.feather, { transform: [{ rotate: '-18deg' }] }]} />
-      </View>
-
+    <View style={{ width: 38, height: 30, position: 'relative', alignItems: 'center', justifyContent: 'center' }}>
       {/* Body */}
-      <View style={bird.body}>
-        {/* Chest highlight */}
-        <View style={bird.chest} />
-        {/* Wing shading stripe */}
-        <View style={bird.bodyStripe} />
-      </View>
-
-      {/* Lower wing flap */}
-      <RNAnimated.View style={[bird.wingLower, { transform: [{ rotate: wingRot2 }] }]} />
-
-      {/* Head */}
-      <View style={bird.head}>
-        {/* Crown feather */}
-        <View style={bird.crown} />
-        {/* Eye white */}
-        <View style={bird.eyeWhite}>
-          {/* Pupil */}
-          <View style={bird.pupil} />
-          {/* Shine */}
-          <View style={bird.eyeShine} />
+      <View style={{ width: 28, height: 24, borderRadius: 12, backgroundColor: '#E8A020', position: 'relative', overflow: 'hidden' }}>
+        {/* Eye */}
+        <View style={{ position: 'absolute', top: 5, left: 16, width: 8, height: 8, borderRadius: 4, backgroundColor: '#FFF', justifyContent: 'center', alignItems: 'center' }}>
+          <View style={{ width: 4, height: 4, borderRadius: 2, backgroundColor: '#000' }} />
         </View>
         {/* Beak */}
-        <View style={bird.beakUpper} />
-        <View style={bird.beakLower} />
+        <View style={{
+          position: 'absolute', top: 7, left: 24,
+          width: 0, height: 0,
+          borderTopWidth: 5, borderTopColor: 'transparent',
+          borderBottomWidth: 5, borderBottomColor: 'transparent',
+          borderLeftWidth: 8, borderLeftColor: '#FF9900',
+        }} />
       </View>
+      {/* Wing */}
+      <RNAnimated.View style={{
+        position: 'absolute', top: 6, left: 4,
+        width: 16, height: 10, borderRadius: 5,
+        backgroundColor: '#C07010',
+        transform: [{ rotate: wingRot }],
+      }} />
     </View>
   );
 }
@@ -427,29 +406,7 @@ export default function SkyDrifter({ onClose, onPlayAgain }: Props) {
         activeOpacity={1}
       >
         {/* Scrolling sky background */}
-        <RNAnimated.View style={[s.bgLayer, { transform: [{ translateX: bgScrollAnim }] }]}>
-          {/* Stars */}
-          {[...Array(8)].map((_, i) => (
-            <View
-              key={i}
-              style={[s.star, {
-                left: (i * 70) % (GAME_W * 2),
-                top: (i * 53) % GAME_H,
-                width: i % 3 === 0 ? 2 : 1.5,
-                height: i % 3 === 0 ? 2 : 1.5,
-                opacity: 0.4 + (i % 4) * 0.15,
-              }]}
-            />
-          ))}
-          {/* Cloud-like blobs */}
-          {[...Array(4)].map((_, i) => (
-            <View key={`c${i}`} style={[s.cloud, {
-              left: i * 200 + 30,
-              top: 40 + i * 90,
-              opacity: 0.06,
-            }]} />
-          ))}
-        </RNAnimated.View>
+        <RNAnimated.View style={[s.bgLayer, { transform: [{ translateX: bgScrollAnim }] }]} />
 
         {/* Ground line */}
         <View style={s.groundLine} />
@@ -470,15 +427,11 @@ export default function SkyDrifter({ onClose, onPlayAgain }: Props) {
             {/* Top pipe */}
             <View style={[s.pipe, { left: 0, top: 0, height: pipeHeights[idx] }]}>
               <View style={s.pipeCap} />
-              <View style={s.pipeGlow} />
             </View>
             {/* Bottom pipe */}
             <View style={[s.pipe, { left: 0, top: pipeHeights[idx] + GAP, bottom: 0, height: GAME_H - pipeHeights[idx] - GAP }]}>
               <View style={s.pipeCapBottom} />
-              <View style={s.pipeGlow} />
             </View>
-            {/* Gap glow */}
-            <View style={[s.gapGlow, { left: 0, top: pipeHeights[idx], height: GAP }]} />
           </RNAnimated.View>
         ))}
 
@@ -522,7 +475,6 @@ const s = StyleSheet.create({
   titleRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   gameTitle: {
     color: '#00BFFF', fontSize: 30, fontWeight: '900', letterSpacing: 4,
-    textShadowColor: 'rgba(0,191,255,0.6)', textShadowOffset: { width: 0, height: 0 }, textShadowRadius: 10,
   },
   demoBird: {
     width: 72, height: 72, borderRadius: 36,
@@ -549,7 +501,6 @@ const s = StyleSheet.create({
     flexDirection: 'row', alignItems: 'center', gap: 6,
     backgroundColor: '#00BFFF', paddingVertical: 14, paddingHorizontal: 32,
     borderRadius: radius.full,
-    shadowColor: '#00BFFF', shadowOffset: { width: 0, height: 0 }, shadowOpacity: 0.6, shadowRadius: 12, elevation: 8,
   },
   startBtnText: { color: colors.bgDeep, fontSize: 16, fontWeight: '900', letterSpacing: 1 },
   btnOutline: {
@@ -618,14 +569,6 @@ const s = StyleSheet.create({
     position: 'absolute', top: 0, left: -5, right: -5, height: 18,
     backgroundColor: PIPE_COLOR, borderRadius: 4,
   },
-  pipeGlow: {
-    position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
-    backgroundColor: PIPE_GLOW,
-  },
-  gapGlow: {
-    position: 'absolute', width: PIPE_W,
-    backgroundColor: 'rgba(0,255,150,0.04)',
-  },
 
   // Bird
   birdWrap: {
@@ -685,15 +628,6 @@ const bird = StyleSheet.create({
     width: 54,
     height: 42,
     position: 'relative',
-  },
-
-  // Soft ambient glow behind the whole bird
-  glow: {
-    position: 'absolute',
-    width: 54, height: 42,
-    borderRadius: 27,
-    backgroundColor: 'rgba(255, 200, 50, 0.18)',
-    top: 0, left: 0,
   },
 
   // ── Body ──

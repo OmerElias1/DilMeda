@@ -207,7 +207,6 @@ export default function MedaClicker({ onClose, onPlayAgain }: Props) {
 
         {/* Preview coin */}
         <View style={s.coinPreviewWrap}>
-          <Animated.View style={[s.coinGlow, { opacity: glowOpacity }]} />
           <View style={s.coin}>
             <Text style={s.coinSymbol}>✦</Text>
           </View>
@@ -246,12 +245,6 @@ export default function MedaClicker({ onClose, onPlayAgain }: Props) {
 
       {/* Coin area */}
       <TouchableOpacity onPress={handleTap} activeOpacity={1} style={s.coinTouchArea}>
-        {/* Ripple effect */}
-        <Animated.View style={[s.ripple, { transform: [{ scale: rippleScale }], opacity: rippleOpacity }]} />
-
-        {/* Outer glow */}
-        <Animated.View style={[s.coinGlow, { opacity: glowOpacity }]} />
-
         {/* Timer ring background */}
         <View style={s.timerRing}>
           {/* Remaining time visual indicator */}
@@ -330,14 +323,6 @@ const s = StyleSheet.create({
 
   // ── Coin ──
   coinTouchArea: { alignItems: 'center', justifyContent: 'center', padding: 30 },
-  ripple: {
-    position: 'absolute', width: COIN_SIZE, height: COIN_SIZE,
-    borderRadius: COIN_SIZE / 2, borderWidth: 3, borderColor: colors.gold,
-  },
-  coinGlow: {
-    position: 'absolute', width: 220, height: 220, borderRadius: 110,
-    backgroundColor: 'rgba(255,215,0,0.12)',
-  },
   timerRing: {
     position: 'absolute', width: RING_SIZE, height: RING_SIZE,
     borderRadius: RING_SIZE / 2, borderWidth: 2,
