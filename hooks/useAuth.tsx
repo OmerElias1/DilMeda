@@ -3,6 +3,7 @@ import { Session, User } from '@supabase/supabase-js';
 import { supabase, Profile } from '@/lib/supabase';
 import * as Linking from 'expo-linking';
 import { useURL } from 'expo-linking';
+import { notifyPointsEarned } from '@/lib/notifications';
 
 type AuthContextType = {
   session: Session | null;
@@ -255,15 +256,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
    * - Calls record_game_played which updates games_played, daily_streak, needs_ad_watch
    * - The DB trigger fires automatically to unlock eligible achievements
    * - Refreshes the local profile state
+   * - Sends notification if points earned preference is enabled
    */
   const endGameSession = async (pts: number) => {
     if (!user) return;
+    const oldPoints = profile?.points ?? 0;
     // 1. Award points
     await addPoints(pts);
     // 2. Record the game – updates streak & games_played and sets needs_ad_watch
     await supabase.rpc('record_game_played', { p_user_id: user.id });
     // 3. Refresh local profile so UI reflects updated stats & streak
     await refreshProfile();
+    // 4. Send notification if points were earned
+    if (pts > 0) {
+      const newPoints = oldPoints + pts;
+      await notifyPointsEarned(user.id, pts, newPoints);
+    }
   };
 
   return (

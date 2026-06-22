@@ -1,11 +1,12 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View, Text, StyleSheet, ScrollView,
-  TouchableOpacity, Switch, Platform
+  TouchableOpacity, Switch, Platform, ActivityIndicator
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Bell, Zap, Trophy, Clock, TrendingUp, ChevronLeft } from 'lucide-react-native';
+import { Bell, Zap, Trophy, Clock, TrendingUp, ChevronLeft, Check } from 'lucide-react-native';
 import { useLanguage } from '@/hooks/useLanguage';
+import { useNotifications } from '@/hooks/useNotifications';
 import { colors, spacing, radius, shadow } from '@/constants/theme';
 
 type Props = {
@@ -15,6 +16,7 @@ type Props = {
 export default function NotificationsModal({ onClose }: Props) {
   const { t } = useLanguage();
   const insets = useSafeAreaInsets();
+  const { preferences, loading, savePreferences, requestPermissions } = useNotifications();
   const [settings, setSettings] = useState({
     tournamentStart: true,
     tournamentEnd: true,
@@ -24,9 +26,53 @@ export default function NotificationsModal({ onClose }: Props) {
     rankChange: true,
     newFeatures: true,
   });
+  const [saving, setSaving] = useState(false);
+  const [saveSuccess, setSaveSuccess] = useState(false);
 
-  const toggleSetting = (key: keyof typeof settings) => {
-    setSettings(prev => ({ ...prev, [key]: !prev[key] }));
+  // Load preferences from hook when they change
+  useEffect(() => {
+    if (!loading && preferences) {
+      setSettings({
+        tournamentStart: preferences.tournament_start,
+        tournamentEnd: preferences.tournament_end,
+        newPrize: preferences.new_prize,
+        dailyReminder: preferences.daily_reminder,
+        pointsEarned: preferences.points_earned,
+        rankChange: preferences.rank_change,
+        newFeatures: preferences.new_features,
+      });
+    }
+  }, [preferences, loading]);
+
+  const toggleSetting = async (key: keyof typeof settings) => {
+    const newSettings = { ...settings, [key]: !settings[key] };
+    setSettings(newSettings);
+    setSaving(true);
+    setSaveSuccess(false);
+
+    // Map settings to database format
+    const prefsToSave = {
+      tournament_start: newSettings.tournamentStart,
+      tournament_end: newSettings.tournamentEnd,
+      new_prize: newSettings.newPrize,
+      daily_reminder: newSettings.dailyReminder,
+      points_earned: newSettings.pointsEarned,
+      rank_change: newSettings.rankChange,
+      new_features: newSettings.newFeatures,
+    };
+
+    const success = await savePreferences(prefsToSave);
+    setSaving(false);
+    if (success) {
+      setSaveSuccess(true);
+      setTimeout(() => setSaveSuccess(false), 2000);
+    }
+  };
+
+  const handleSave = async () => {
+    // Request permissions if not already granted
+    await requestPermissions();
+    onClose();
   };
 
   return (
@@ -113,11 +159,24 @@ export default function NotificationsModal({ onClose }: Props) {
         />
 
         <View style={styles.saveBox}>
-          <TouchableOpacity style={styles.saveBtn} onPress={onClose}>
-            <Text style={styles.saveBtnText}>{t('notifSavePrefs')}</Text>
+          <TouchableOpacity 
+            style={styles.saveBtn} 
+            onPress={handleSave}
+            disabled={saving}
+          >
+            {saving ? (
+              <ActivityIndicator color={colors.bgDeep} />
+            ) : saveSuccess ? (
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                <Check color={colors.bgDeep} size={18} />
+                <Text style={styles.saveBtnText}>{t('notifSavePrefs')}</Text>
+              </View>
+            ) : (
+              <Text style={styles.saveBtnText}>{t('notifSavePrefs')}</Text>
+            )}
           </TouchableOpacity>
           <Text style={styles.saveNote}>
-            {t('notifSaveNote')}
+            {saving ? 'Saving preferences...' : t('notifSaveNote')}
           </Text>
         </View>
       </ScrollView>

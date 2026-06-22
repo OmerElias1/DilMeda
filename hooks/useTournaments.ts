@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase, Tournament, TournamentRegistration } from '@/lib/supabase';
 import { useAuth } from './useAuth';
+import { notifyTournamentStart, notifyTournamentEnd } from '@/lib/notifications';
 
 export type TournamentWithCount = Tournament & { player_count: number };
 
@@ -12,6 +13,7 @@ export function useTournaments() {
   const [myTournamentPoints, setMyTournamentPoints] = useState(0);
   const [loading, setLoading] = useState(true);
   const [registering, setRegistering] = useState(false);
+  const previousActiveTournamentRef = useRef<Tournament | null>(null);
 
   const fetchTournaments = useCallback(async () => {
     const { data } = await supabase
@@ -66,6 +68,10 @@ export function useTournaments() {
         setActiveTournamentId(t.id);
         fetchMyPoints(t.id);
       } else {
+        // Tournament ended - send notification if we had an active tournament
+        if (previousActiveTournamentRef.current && t) {
+          notifyTournamentEnd(user.id, t.name);
+        }
         setActiveTournament(null);
         setActiveTournamentId(null);
         setMyTournamentPoints(0);
@@ -95,7 +101,13 @@ export function useTournaments() {
     const { error } = await supabase
       .from('tournament_registrations')
       .insert({ user_id: user.id, tournament_id: tournamentId });
-    if (!error) await fetchMyRegistration();
+    if (!error) {
+      await fetchMyRegistration();
+      // Send tournament start notification
+      if (tObj) {
+        await notifyTournamentStart(user.id, tObj.name);
+      }
+    }
     setRegistering(false);
     return { error: error?.message ?? null };
   }, [user, activeTournament, tournaments, fetchMyRegistration]);
@@ -107,6 +119,13 @@ export function useTournaments() {
     fetchTournaments();
     fetchMyRegistration();
   }, [fetchTournaments, fetchMyRegistration]);
+
+  // Track previous active tournament for end notification
+  useEffect(() => {
+    if (activeTournament) {
+      previousActiveTournamentRef.current = activeTournament;
+    }
+  }, [activeTournament]);
 
   return {
     tournaments,
