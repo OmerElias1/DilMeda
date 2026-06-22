@@ -16,7 +16,7 @@ type AuthContextType = {
   signUp: (identifier: { email?: string; phone?: string }, password: string, name?: string, phoneNumber?: string) => Promise<{ error: string | null; needsVerification?: boolean }>;
   signIn: (identifier: { email?: string; phone?: string }, password: string) => Promise<{ error: string | null; needsVerification?: boolean }>;
   signOut: () => Promise<void>;
-  refreshProfile: () => Promise<void>;
+  refreshProfile: () => Promise<Profile | null>;
   addPoints: (pts: number) => Promise<void>;
   /** Call at the end of any game session. Awards pts, records the game played,
    *  updates daily streak, and auto-unlocks achievements via the DB trigger. */
@@ -43,7 +43,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setActiveTournamentIdState(id);
   }, []);
 
-  const fetchProfile = useCallback(async (uid: string) => {
+  const fetchProfile = useCallback(async (uid: string): Promise<Profile | null> => {
     const { data } = await supabase
       .from('profiles')
       .select('*')
@@ -51,6 +51,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       .maybeSingle();
     if (data) {
       setProfile(data as Profile);
+      return data as Profile;
     } else {
       const { data: { session } } = await supabase.auth.getSession();
       if (session?.user) {
@@ -67,13 +68,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           })
           .select()
           .maybeSingle();
-        if (newProfile) setProfile(newProfile as Profile);
+        if (newProfile) {
+          setProfile(newProfile as Profile);
+          return newProfile as Profile;
+        }
       }
     }
+    return null;
   }, []);
 
-  const refreshProfile = useCallback(async () => {
-    if (user) await fetchProfile(user.id);
+  const refreshProfile = useCallback(async (): Promise<Profile | null> => {
+    if (user) return await fetchProfile(user.id);
+    return null;
   }, [user, fetchProfile]);
 
   const handleAuthDeepLink = useCallback(async (rawUrl: string) => {

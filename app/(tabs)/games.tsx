@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useRef } from 'react';
 import { useFocusEffect } from 'expo-router';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
@@ -167,13 +167,14 @@ function TournamentCard({
 }
 
 // ── Game lobby (inside a tournament) ─────────────────────────────────────────
+const AD_EVERY_N_GAMES = 3;
+
 function GameLobby({
-  tournament, myPoints, profile, refreshProfile, refreshPoints,
+  tournament, myPoints, refreshProfile, refreshPoints,
 }: {
   tournament: Tournament;
   myPoints: number;
-  profile: any;
-  refreshProfile: () => Promise<void>;
+  refreshProfile: () => Promise<any>;
   refreshPoints: () => Promise<void>;
 }) {
   const insets = useSafeAreaInsets();
@@ -183,19 +184,32 @@ function GameLobby({
   const tTime = useTimeLeft(tournament.end_time);
   const { t } = useLanguage();
 
+  // Simple local counter — every AD_EVERY_N_GAMES plays an ad is shown
+  const gamesPlayedRef = useRef(0);
+
+  const needsAd = () => {
+    gamesPlayedRef.current += 1;
+    return gamesPlayedRef.current % AD_EVERY_N_GAMES === 0;
+  };
+
   const closeGame = useCallback(async () => {
     setActiveGame(null);
     await Promise.all([refreshProfile(), refreshPoints()]);
   }, [refreshProfile, refreshPoints]);
 
-  React.useEffect(() => {
-    if (activeGame === null && profile?.needs_ad_watch) setShowAdModal(true);
-  }, [activeGame, profile?.needs_ad_watch]);
-
   const renderGame = (id: GameId) => {
     const onPlayAgain = async () => {
-      setPendingGame(id); setActiveGame(null); setShowAdModal(true);
       await Promise.all([refreshProfile(), refreshPoints()]);
+      if (needsAd()) {
+        // Ad is due — show it before next game
+        setPendingGame(id);
+        setActiveGame(null);
+        setShowAdModal(true);
+      } else {
+        // Cycle through null to remount the game component
+        setActiveGame(null);
+        setTimeout(() => setActiveGame(id), 50);
+      }
     };
     switch (id) {
       case 'clicker': return <MedaClicker onClose={closeGame} onPlayAgain={onPlayAgain} />;
@@ -214,8 +228,6 @@ function GameLobby({
 
   return (
     <SafeAreaView style={styles.root}>
-      <ParticleBackground />
-
       {/* Battle LOBBY HUD Banner */}
       <LinearGradient
         colors={[tournament.banner_color ?? '#2D1555', '#0D0618']}
@@ -248,8 +260,14 @@ function GameLobby({
             key={game.id}
             style={[styles.gameCard, tTime.expired && styles.cardDisabled]}
             onPress={() => {
-              if (profile?.needs_ad_watch && !tTime.expired) { setShowAdModal(true); }
-              else if (!tTime.expired) { setActiveGame(game.id); }
+              if (!tTime.expired) {
+                if (needsAd()) {
+                  setPendingGame(game.id);
+                  setShowAdModal(true);
+                } else {
+                  setActiveGame(game.id);
+                }
+              }
             }}
             activeOpacity={0.85}
           >
@@ -363,7 +381,6 @@ export default function TournamentsScreen() {
       <GameLobby
         tournament={activeTournament}
         myPoints={myTournamentPoints}
-        profile={profile}
         refreshProfile={refreshProfile}
         refreshPoints={refreshPoints}
       />

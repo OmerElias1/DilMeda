@@ -57,53 +57,82 @@ export default function SupportModal({ onClose }: Props) {
     }
   }, [messages, isTyping]);
 
-  // AI Response Generator
-  const generateBotResponse = (text: string): string => {
-    const query = text.toLowerCase();
-    
-    if (query.includes('point') || query.includes('earn') || query.includes('ነጥብ') || query.includes('ማግኘት')) {
-      return lang === 'am'
-        ? 'ጨዋታዎችን በመጫወት፣ ማስታወቂያዎችን በመመልከት ወይም ዕለታዊ ዕድለኛ ዊልን በማሽከርከር ነጥቦችን ማግኘት ይችላሉ! ነጥቦችዎ በጨመረ ቁጥር ደረጃዎ ከፍ ይላል።'
-        : 'You can earn points by playing games, watching ads, or spinning the daily lucky wheel! The higher your score, the higher you rank on the leaderboards.';
-    }
-    if (query.includes('tournament') || query.includes('lobby') || query.includes('ውድድር') || query.includes('ክፍል')) {
-      return lang === 'am'
-        ? 'ውድድሮች ተጫዋቾች እስከ መጨረሻው ተወዳድረው እንደ ETB ጥሬ ገንዘብ ወይም ፕሌይስቴሽን 5 የመሳሰሉ ሽልማቶችን የሚያሸንፉበት ነው። ከመዘጋቱ በፊት ይመዝገቡ!'
-        : 'Tournaments are competitive lobbies where players with the highest points at the end win real rewards like ETB Cash or a PlayStation 5. Make sure to register before the deadline!';
-    }
-    if (query.includes('tree') || query.includes('grow') || query.includes('ዛፍ') || query.includes('ውሃ')) {
-      return lang === 'am'
-        ? 'ዛፍዎን በየቀኑ ውሃ በማጠጣት ያሳድጉ! እያንዳንዱ የዕድገት ደረጃ ነጥቦችን ያሰጥዎታል። በየቀኑ ነጻ ውሃ ያገኛሉ፣ ማስታወቂያዎችን በማየትም ተጨማሪ ማግኘት ይችላሉ።'
-        : 'Water your tree daily to grow it! Every growth stage awards you points. You get free waters daily and can watch ads for bonus water.';
-    }
-    if (query.includes('streak') || query.includes('daily') || query.includes('ተከታታይ') || query.includes('ቀን')) {
-      return lang === 'am'
-        ? 'በየቀኑ በመግባትና ጨዋታዎችን በመጫወት ተከታታይ ቀናትዎን (Streak) ያሳድጉ! ከፍተኛ ስኬቶች ልዩ ባጆችንና ተጨማሪ የነጥብ ጉርሻዎችን ያስከፍታሉ።'
-        : 'Log in and play games daily to increase your daily streak! Higher streaks unlock exclusive badges and double point bonuses.';
-    }
-    if (query.includes('prize') || query.includes('payment') || query.includes('withdraw') || query.includes('ሽልማት') || query.includes('ክፍያ')) {
-      return lang === 'am'
-        ? 'ሽልማቶች ውድድሩ ካበቃ በኋላ ወዲያውኑ ለአሸናፊዎች ይከፈላሉ። በ Gamer Credentials ውስጥ ስልክ ቁጥርዎ በትክክል መሞላቱን ያረጋግጡ።'
-        : 'Prizes are distributed to the winners shortly after the tournament ends. Go to Profile > Gamer Credentials to ensure your phone number is correct.';
-    }
-    if (query.includes('spin') || query.includes('wheel') || query.includes('ዊል') || query.includes('እሽክርክሪት')) {
-      return lang === 'am'
-        ? 'ዕድለኛ እሽክርክሪት በቀን አንድ ጊዜ የሚገኝ ነጻ ጨዋታ ነው። ከ 10 እስከ 100 ነጥቦችን ማሸነፍ ይችላሉ!'
-        : 'The Lucky Spin wheel is available once every 24 hours. You can win anywhere from 10 to 100 points instantly!';
+  // ── Real Gemini AI integration ───────────────────────────────────────────
+  const GEMINI_API_KEY = process.env.EXPO_PUBLIC_GEMINI_API_KEY ?? '';
+  // Support both key query parameter and x-goog-api-key header for the new AQ. format
+  const GEMINI_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=${encodeURIComponent(GEMINI_API_KEY)}`;
+
+  const SYSTEM_PROMPT = `You are Meda Bot, the friendly AI support assistant for DilMeda — an Ethiopian mobile gaming app.
+
+DilMeda app facts:
+- Games available: Meda Clicker (tap coins), Ad-Avoider (dodge ads), Memory Match (card pairs), Lucky Spin (daily wheel), Tree Grower (water daily), Sky Drifter (flappy bird), Metro Rush (endless runner), Cyber Stack, Rhythm Pulse, Laser Deflector, Color Orbit.
+- Tournaments: Players join lobbies by paying an entry fee in points. The player with the most points when the tournament ends wins real prizes (ETB cash, PlayStation 5, etc.).
+- Points: Earned by playing games, watching ads, daily spin. Points also used to enter tournaments.
+- Daily Streaks: Log in and play every day to build a streak. Higher streaks give bonus multipliers.
+- Tree Grower: Water your tree daily for free; watch ads for extra water. Each growth stage gives points.
+- Lucky Spin: Once every 24 hours, spin to win 10–100 points instantly.
+- Prizes are paid via the phone number saved in Profile > Gamer Credentials.
+- Support email: Omereliaskamil@gmail.com
+
+Rules:
+- Answer only questions related to DilMeda. If someone asks something unrelated, politely redirect them.
+- Keep answers concise (2–4 sentences max) and friendly.
+- Support both English and Amharic. Reply in the same language the user writes in.
+- Never make up features that don't exist in the app.`;
+
+  const callGemini = async (userText: string): Promise<string> => {
+    if (!GEMINI_API_KEY || GEMINI_API_KEY.includes('YOUR_GEMINI_API_KEY')) {
+      console.warn('Gemini API key is not configured in .env file.');
+      throw new Error('API Key missing');
     }
 
-    return lang === 'am'
-      ? 'እኔ ሜዳ ቦት ነኝ፣ ስለ ውድድሮች፣ ጨዋታዎች፣ ነጥቦች ወይም ዛፍ አሳዳጊ ልረዳዎት እችላለሁ። ከታች ካሉት ጥያቄዎች አንዱን መምረጥም ይችላሉ!'
-      : "I am Meda Bot! I can help you with tournaments, points, game rules, and daily streaks. You can also select one of the quick topics below!";
+    // Build conversation history for Gemini (alternating user/model turns)
+    const history = messages
+      .filter(m => m.id !== 'welcome') // skip the static greeting
+      .map(m => ({
+        role: m.sender === 'user' ? 'user' : 'model',
+        parts: [{ text: m.text }],
+      }));
+
+    const body = {
+      systemInstruction: { parts: [{ text: SYSTEM_PROMPT }] },
+      contents: [
+        ...history,
+        { role: 'user', parts: [{ text: userText }] },
+      ],
+      generationConfig: {
+        temperature: 0.7,
+        maxOutputTokens: 300,
+      },
+    };
+
+    const res = await fetch(GEMINI_URL, {
+      method: 'POST',
+      headers: { 
+        'Content-Type': 'application/json',
+        'x-goog-api-key': GEMINI_API_KEY // Primary header auth for Google Cloud/Auth API keys
+      },
+      body: JSON.stringify(body),
+    });
+
+    if (!res.ok) {
+      const err = await res.text();
+      console.error('Gemini error:', err);
+      throw new Error('AI unavailable');
+    }
+
+    const data = await res.json();
+    return data?.candidates?.[0]?.content?.parts?.[0]?.text?.trim()
+      ?? "Sorry, I couldn't generate a response. Please try again!";
   };
 
-  const handleSendMessage = (text: string) => {
+  const handleSendMessage = async (text: string) => {
     if (!text.trim()) return;
 
     const userMsg: Message = {
       id: Math.random().toString(),
       sender: 'user',
-      text: text,
+      text: text.trim(),
       timestamp: new Date(),
     };
 
@@ -111,18 +140,26 @@ export default function SupportModal({ onClose }: Props) {
     setInputMessage('');
     setIsTyping(true);
 
-    // Simulate AI typing delay
-    setTimeout(() => {
-      const botResponse = generateBotResponse(text);
-      const botMsg: Message = {
+    try {
+      const reply = await callGemini(text.trim());
+      setMessages(prev => [...prev, {
         id: Math.random().toString(),
         sender: 'bot',
-        text: botResponse,
+        text: reply,
         timestamp: new Date(),
-      };
-      setMessages(prev => [...prev, botMsg]);
+      }]);
+    } catch {
+      setMessages(prev => [...prev, {
+        id: Math.random().toString(),
+        sender: 'bot',
+        text: lang === 'am'
+          ? 'ይቅርታ፣ አሁን ማገናኘት አልቻልኩም። እባክዎ ቆይተው ይሞክሩ።'
+          : 'Sorry, I could not connect right now. Please try again in a moment.',
+        timestamp: new Date(),
+      }]);
+    } finally {
       setIsTyping(false);
-    }, 1000);
+    }
   };
 
   // Submit Issue Report

@@ -7,7 +7,7 @@ import { colors, spacing, radius, shadow } from '@/constants/theme';
 import { useAuth } from '@/hooks/useAuth';
 import { useTournament } from '@/hooks/useTournament';
 
-type Props = { 
+type Props = {
   onClose: () => void;
   onPlayAgain?: () => void;
 };
@@ -116,7 +116,7 @@ export default function MemoryMatch({ onClose, onPlayAgain }: Props) {
         <Text style={styles.gameSub}>Find all matching pairs</Text>
         <Text style={styles.gameSub}>Fewer moves = more bonus points!</Text>
         <View style={styles.previewGrid}>
-          {[0,1,2,3].map(i => (
+          {[0, 1, 2, 3].map(i => (
             <View key={i} style={styles.previewCard}>
               <Text style={styles.cardBack}>?</Text>
             </View>

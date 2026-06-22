@@ -1,4 +1,4 @@
--- Migration to reduce ad frequency: watch ads after every 2 games instead of every game
+-- Migration to reduce ad frequency: watch ads after every 3 games instead of 2
 -- Apply this in the Supabase SQL Editor to update your remote database immediately.
 
 CREATE OR REPLACE FUNCTION record_game_played(p_user_id uuid)
@@ -35,7 +35,7 @@ BEGIN
   UPDATE profiles
   SET 
     games_played = games_played + 1,
-    needs_ad_watch = ((games_played + 1) % 2 = 0),
+    needs_ad_watch = ((games_played + 1) % 3 = 0),
     daily_streak = COALESCE(curr_streak, 1),
     last_game_played_at = now()
   WHERE id = p_user_id;
