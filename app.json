@@ -8,7 +8,14 @@
     "scheme": "dilmeda",
     "userInterfaceStyle": "dark",
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.oek04.dilmeda"
+    },
+    "android": {
+      "package": "com.oek04.dilmeda",
+      "adaptiveIcon": {
+        "backgroundColor": "#000000"
+      }
     },
     "web": {
       "bundler": "metro",
@@ -22,6 +29,13 @@
     ],
     "experiments": {
       "typedRoutes": true
-    }
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "1b7f1b1b-381f-49ba-8e82-7b9fe964cecd"
+      }
+    },
+    "owner": "oek_04"
   }
 }
