@@ -21,7 +21,7 @@ const NUM_TABS = 4;
 const TAB_W = BAR_WIDTH / NUM_TABS;
 
 // Centre x of each tab's blob (relative to pill left edge)
-const tabCenter = (i: number) => TAB_W * i + TAB_W / 2;
+const tabCenter = (i: number) => TAB_W * i + TAB_W / 2 -24;
 
 const TABS_DEF = [
   { name: 'index',       labelKey: 'tabHome'    as const, Icon: Home },
