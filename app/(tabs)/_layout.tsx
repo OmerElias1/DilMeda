@@ -75,7 +75,7 @@ function TabItem({ tab, focused }: { tab: { name: string; label: string; Icon: a
   const { Icon } = tab;
   return (
     <Animated.View style={[styles.tabInner, { transform: [{ scale }] }]}>
-      <View style={focused && styles.activeIconBg}>
+      <View style={styles.iconContainer}>
         <Icon
           color={focused ? colors.gold : '#8F7EA6'}
           size={21}
@@ -261,6 +261,7 @@ const styles = StyleSheet.create({
   /* ── Blob ── */
   blobWrapper: {
     position: 'absolute',
+    left: 0,
     top: 11,
     width: 48,
     height: 48,
@@ -299,14 +300,19 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   tabInner: {
+    height: '100%',
+    width: '100%',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 3,
   },
-  activeIconBg: {
+  iconContainer: {
     padding: 2,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   tabLabel: {
+    position: 'absolute',
+    bottom: 8,
     fontSize: 9,
     fontWeight: '800',
     letterSpacing: 0.5,

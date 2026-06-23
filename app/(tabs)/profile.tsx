@@ -6,7 +6,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
-import { LogOut, Star, Award, Clock, ChevronRight, Trophy, Lock, Globe, Bell, Sparkles, MessageSquare } from 'lucide-react-native';
+import { LogOut, Star, Award, Clock, ChevronRight, Trophy, Lock, Globe, Bell, Sparkles, MessageSquare, X } from 'lucide-react-native';
 import { useAuth } from '@/hooks/useAuth';
 import { useTournament } from '@/hooks/useTournament';
 import { useLanguage } from '@/hooks/useLanguage';
@@ -269,7 +269,7 @@ export default function ProfileScreen() {
         <SafeAreaView style={styles.modalRoot}>
           <View style={styles.modalHeader}>
             <TouchableOpacity onPress={() => setShowPasswordModal(false)}>
-              <Text style={styles.modalCloseBtn}>✕</Text>
+              <X color={colors.textMuted} size={22} />
             </TouchableOpacity>
             <Text style={styles.modalTitle}>{t('changeAccessPassword')}</Text>
             <View style={{ width: 24 }} />
@@ -461,7 +461,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.md, paddingVertical: spacing.md,
     borderBottomWidth: 1.5, borderBottomColor: '#3D1F6E50',
   },
-  modalCloseBtn: { color: colors.textMuted, fontSize: 22 },
   modalTitle: { color: colors.gold, fontSize: 16, fontWeight: '900', letterSpacing: 0.5 },
   modalContent: { padding: spacing.md },
   passwordForm: { gap: spacing.md },

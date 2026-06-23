@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import * as Notifications from 'expo-notifications';
 import { Platform } from 'react-native';
+import Constants from 'expo-constants';
 import { supabase } from '@/lib/supabase';
 
 // Configure notification handler
@@ -49,11 +50,12 @@ export function useNotifications() {
       });
     }
 
-    const existingStatus = await Notifications.getPermissionsAsync();
+    const { status: existingStatus } = await Notifications.getPermissionsAsync();
     let finalStatus = existingStatus;
     
     if (existingStatus !== 'granted') {
-      finalStatus = await Notifications.requestPermissionsAsync();
+      const { status } = await Notifications.requestPermissionsAsync();
+      finalStatus = status;
     }
     
     setPermissions(finalStatus);
@@ -62,15 +64,25 @@ export function useNotifications() {
 
   // Get push notification token
   const getPushToken = useCallback(async () => {
-    const hasPermission = await requestPermissions();
-    if (!hasPermission) return null;
+    try {
+      const hasPermission = await requestPermissions();
+      if (!hasPermission) return null;
 
-    const token = await Notifications.getExpoPushTokenAsync({
-      projectId: process.env.EXPO_PUBLIC_PROJECT_ID,
-    });
-    
-    setPushToken(token.data);
-    return token.data;
+      const projectId = 
+        process.env.EXPO_PUBLIC_PROJECT_ID || 
+        Constants.expoConfig?.extra?.eas?.projectId || 
+        Constants.easConfig?.projectId;
+
+      const token = await Notifications.getExpoPushTokenAsync({
+        projectId,
+      });
+      
+      setPushToken(token.data);
+      return token.data;
+    } catch (error) {
+      console.warn('Error getting Expo push token:', error);
+      return null;
+    }
   }, [requestPermissions]);
 
   // Load notification preferences from Supabase

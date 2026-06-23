@@ -5,7 +5,7 @@ import {
 import { colors, spacing, radius, shadow } from '@/constants/theme';
 import { useAuth } from '@/hooks/useAuth';
 import { useTournaments, useTimeLeft } from '@/hooks/useTournaments';
-import { Play, Eye, Zap } from 'lucide-react-native';
+import { Play, Eye, Zap, Trophy } from 'lucide-react-native';
 
 const AD_SCENARIOS = [
   { title: 'Habesha Coffee Co.', desc: 'Premium Ethiopian coffee delivered to your door', points: 5, color: '#8B4513' },
@@ -120,7 +120,7 @@ export default function AdPlayer({ onClose, onAdWatched, givePoints = true }: Ad
         ]}
       >
         <View style={styles.rewardBurst}>
-          <Text style={styles.rewardEmoji}>🏆</Text>
+          <Trophy color={colors.gold} size={56} />
           {givePoints ? (
             <>
               <Text style={styles.rewardPoints}>+{earned} pts</Text>
@@ -276,7 +276,6 @@ const styles = StyleSheet.create({
     gap: 8,
     marginBottom: spacing.xl,
   },
-  rewardEmoji: { fontSize: 56 },
   rewardPoints: { color: colors.gold, fontSize: 42, fontWeight: '900' },
   rewardMsg: { color: colors.textPrimary, fontSize: 20, fontWeight: '800' },
   rewardSub: { color: colors.textSecondary, fontSize: 13, textAlign: 'center' },

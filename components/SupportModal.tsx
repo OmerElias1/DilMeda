@@ -4,7 +4,7 @@ import {
   TextInput, Alert, ActivityIndicator, Linking, KeyboardAvoidingView, Platform
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { ChevronLeft, Send, MessageSquare, AlertTriangle, Cpu, CheckCircle } from 'lucide-react-native';
+import { ChevronLeft, Send, MessageSquare, AlertTriangle, Cpu, CheckCircle, Coins, Trophy, TreePine, Flame, Gift } from 'lucide-react-native';
 import { useLanguage } from '@/hooks/useLanguage';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/lib/supabase';
@@ -323,31 +323,36 @@ Rules:
                   style={styles.quickChip}
                   onPress={() => handleSendMessage(lang === 'am' ? 'ነጥብ እንዴት ይሰበሰባል?' : 'How to earn points?')}
                 >
-                  <Text style={styles.quickChipText}>💰 {lang === 'am' ? 'ነጥብ ማግኘት' : 'Points'}</Text>
+                  <Coins color={colors.textSecondary} size={12} />
+                  <Text style={styles.quickChipText}>{lang === 'am' ? 'ነጥብ ማግኘት' : 'Points'}</Text>
                 </TouchableOpacity>
                 <TouchableOpacity
                   style={styles.quickChip}
                   onPress={() => handleSendMessage(lang === 'am' ? 'ውድድሮች እንዴት ይሰራሉ?' : 'How do tournaments work?')}
                 >
-                  <Text style={styles.quickChipText}>🏆 {lang === 'am' ? 'ውድድሮች' : 'Tournaments'}</Text>
+                  <Trophy color={colors.textSecondary} size={12} />
+                  <Text style={styles.quickChipText}>{lang === 'am' ? 'ውድድሮች' : 'Tournaments'}</Text>
                 </TouchableOpacity>
                 <TouchableOpacity
                   style={styles.quickChip}
                   onPress={() => handleSendMessage(lang === 'am' ? 'ስለ ዛፍ ጨዋታ ንገረኝ' : 'Tell me about the Tree Grower game')}
                 >
-                  <Text style={styles.quickChipText}>🌳 {lang === 'am' ? 'ዛፍ ጨዋታ' : 'Tree Grower'}</Text>
+                  <TreePine color={colors.textSecondary} size={12} />
+                  <Text style={styles.quickChipText}>{lang === 'am' ? 'ዛፍ ጨዋታ' : 'Tree Grower'}</Text>
                 </TouchableOpacity>
                 <TouchableOpacity
                   style={styles.quickChip}
                   onPress={() => handleSendMessage(lang === 'am' ? 'ዕለታዊ ተከታታይ (streak) ጥቅሙ ምንድነው?' : 'How daily streaks work?')}
                 >
-                  <Text style={styles.quickChipText}>🔥 {lang === 'am' ? 'ዕለታዊ ተከታታይ' : 'Daily Streaks'}</Text>
+                  <Flame color={colors.textSecondary} size={12} />
+                  <Text style={styles.quickChipText}>{lang === 'am' ? 'ዕለታዊ ተከታታይ' : 'Daily Streaks'}</Text>
                 </TouchableOpacity>
                 <TouchableOpacity
                   style={styles.quickChip}
                   onPress={() => handleSendMessage(lang === 'am' ? 'ሽልማት እንዴት ይከፈላል?' : 'How are rewards paid?')}
                 >
-                  <Text style={styles.quickChipText}>🎁 {lang === 'am' ? 'ሽልማቶች' : 'Rewards'}</Text>
+                  <Gift color={colors.textSecondary} size={12} />
+                  <Text style={styles.quickChipText}>{lang === 'am' ? 'ሽልማቶች' : 'Rewards'}</Text>
                 </TouchableOpacity>
               </ScrollView>
             </View>
@@ -506,6 +511,9 @@ const styles = StyleSheet.create({
   quickRepliesContainer: { paddingVertical: spacing.xs, borderTopWidth: 1, borderTopColor: colors.border },
   quickRepliesContent: { paddingHorizontal: spacing.md, gap: spacing.sm },
   quickChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
     backgroundColor: '#0D0618', paddingHorizontal: 12, paddingVertical: 8,
     borderRadius: radius.full, borderWidth: 1, borderColor: '#3D1F6E60',
   },

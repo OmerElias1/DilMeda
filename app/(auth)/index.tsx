@@ -9,6 +9,7 @@ import { useLanguage } from '@/hooks/useLanguage';
 import { supabase } from '@/lib/supabase';
 import { colors, spacing, radius, shadow } from '@/constants/theme';
 import ParticleBackground from '@/components/ParticleBackground';
+import { Mail, Send } from 'lucide-react-native';
 
 const { width: W, height: H } = Dimensions.get('window');
 
@@ -441,7 +442,9 @@ export default function AuthScreen() {
             {mode === 'verify_email' ? (
               // ── Email Verification Sent Screen ─────────────────────────
               <View style={styles.verifyContainer}>
-                <Text style={styles.verifyIcon}>📬</Text>
+                <View style={styles.verifyIconWrapper}>
+                  <Mail color={colors.gold} size={52} />
+                </View>
                 <Text style={styles.verifyTitle}>{t('verifyCheckEmail')}</Text>
                 <Text style={styles.verifySub}>{t('verifySentLinkTo')}</Text>
                 <Text style={styles.verifyEmail}>{email.trim()}</Text>
@@ -471,7 +474,7 @@ export default function AuthScreen() {
                       ? t('sending')
                       : resendCooldown > 0
                       ? `${t('resendIn')} ${resendCooldown}s`
-                      : `📤 ${t('resendEmailBtn')}`}
+                      : t('resendEmailBtn')}
                   </Text>
                 </TouchableOpacity>
 
@@ -625,8 +628,10 @@ const styles = StyleSheet.create({
   verifyContainer: {
     alignItems: 'center', gap: spacing.md, paddingVertical: spacing.sm,
   },
-  verifyIcon: {
-    fontSize: 52, marginBottom: 4,
+  verifyIconWrapper: {
+    marginBottom: 4,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   verifyTitle: {
     color: colors.gold, fontSize: 22, fontWeight: '900', letterSpacing: 0.3,

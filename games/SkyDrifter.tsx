@@ -3,7 +3,7 @@ import {
   View, Text, StyleSheet, TouchableOpacity, Dimensions,
   Animated as RNAnimated, Easing,
 } from 'react-native';
-import { Zap, ChevronRight, Wind } from 'lucide-react-native';
+import { Zap, ChevronRight, Wind, Skull } from 'lucide-react-native';
 import { colors, spacing, radius, shadow } from '@/constants/theme';
 import { useAuth } from '@/hooks/useAuth';
 import { useTournament } from '@/hooks/useTournament';
@@ -287,7 +287,7 @@ export default function SkyDrifter({ onClose, onPlayAgain }: Props) {
           <Text style={s.infoText}><Text style={{ color: '#00BFFF', fontWeight: '800' }}>Tap anywhere</Text> to flap your wings</Text>
           <Text style={s.infoText}>Fly through the <Text style={{ color: colors.neon, fontWeight: '800' }}>glowing pipes</Text></Text>
           <Text style={s.infoText}>Don't hit the pipes or walls!</Text>
-          <Text style={[s.infoText, { color: colors.gold, marginTop: 8 }]}>⚡ Speed increases with score!</Text>
+          <Text style={[s.infoText, { color: colors.gold, marginTop: 8 }]}>Speed increases with score!</Text>
         </View>
 
         <TouchableOpacity style={s.startBtn} onPress={startGame} activeOpacity={0.8}>
@@ -308,7 +308,7 @@ export default function SkyDrifter({ onClose, onPlayAgain }: Props) {
       <View style={s.container}>
         <RNAnimated.View style={[s.resultCard, { transform: [{ scale: resultScale }] }]}>
           <View style={s.trophyRing}>
-            <Text style={{ fontSize: 38 }}>🪦</Text>
+            <Skull color="#00BFFF" size={36} />
           </View>
           <Text style={s.resultTitle}>CRASHED!</Text>
           <Text style={s.resultScore}>{score}</Text>

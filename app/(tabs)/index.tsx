@@ -5,7 +5,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Eye, Zap, Star, TrendingUp, Gamepad2, Trophy, Clock, ShieldAlert, Sparkles, Award } from 'lucide-react-native';
+import { Eye, Zap, Star, TrendingUp, Gamepad2, Trophy, Clock, ShieldAlert, Sparkles, Award, X } from 'lucide-react-native';
 import { useAuth } from '@/hooks/useAuth';
 import { useTournaments, useTimeLeft } from '@/hooks/useTournaments';
 import { useFocusEffect } from 'expo-router';
@@ -225,7 +225,7 @@ export default function HomeScreen() {
           <View style={styles.modalHeader}>
             <Text style={styles.modalTitle}>{t('watchEarn')}</Text>
             <TouchableOpacity onPress={() => setAdModalOpen(false)} style={styles.closeBtn}>
-              <Text style={styles.closeBtnText}>✕</Text>
+              <X color={colors.textSecondary} size={22} />
             </TouchableOpacity>
           </View>
           <AdPlayer onClose={() => setAdModalOpen(false)} />
@@ -400,5 +400,4 @@ const styles = StyleSheet.create({
   },
   modalTitle: { color: colors.gold, fontSize: 18, fontWeight: '800' },
   closeBtn: { padding: 6 },
-  closeBtnText: { color: colors.textSecondary, fontSize: 18 },
 });

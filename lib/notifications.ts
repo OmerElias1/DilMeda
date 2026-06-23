@@ -28,14 +28,17 @@ export async function sendNotificationIfEnabled(
       .eq('user_id', userId)
       .single();
 
+    let isEnabled = true;
     if (error || !prefs) {
-      console.log('No notification preferences found for user');
-      return false;
+      console.log('No notification preferences found for user, using default settings');
+      // Default preferences: daily_reminder is false, others are true
+      isEnabled = type !== 'daily_reminder';
+    } else {
+      const prefKey = type as keyof typeof prefs;
+      isEnabled = !!prefs[prefKey];
     }
 
-    // Check if this notification type is enabled
-    const prefKey = type as keyof typeof prefs;
-    if (!prefs[prefKey]) {
+    if (!isEnabled) {
       console.log(`Notification type ${type} is disabled for user`);
       return false;
     }
@@ -65,7 +68,7 @@ export async function notifyPointsEarned(userId: string, points: number, totalPo
   await sendNotificationIfEnabled(
     userId,
     'points_earned',
-    '🎉 Points Earned!',
+    'Points Earned!',
     `You earned ${points} points! Total: ${totalPoints}`,
     { points, totalPoints }
   );
@@ -78,7 +81,7 @@ export async function notifyTournamentStart(userId: string, tournamentName: stri
   await sendNotificationIfEnabled(
     userId,
     'tournament_start',
-    '🏆 Tournament Started!',
+    'Tournament Started!',
     `The "${tournamentName}" tournament has begun! Good luck!`,
     { tournamentName }
   );
@@ -104,7 +107,7 @@ export async function notifyRankChange(userId: string, newRank: number, totalPla
   await sendNotificationIfEnabled(
     userId,
     'rank_change',
-    '📈 Rank Updated!',
+    'Rank Updated!',
     `You are now ranked #${newRank} out of ${totalPlayers} players!`,
     { newRank, totalPlayers }
   );
@@ -117,7 +120,7 @@ export async function notifyDailyReminder(userId: string): Promise<void> {
   await sendNotificationIfEnabled(
     userId,
     'daily_reminder',
-    '⚡ Daily Reminder',
+    'Daily Reminder',
     'Don\'t forget to play today and earn points!',
     {}
   );
@@ -130,7 +133,7 @@ export async function scheduleDailyReminder(userId: string, hour: number = 10): 
   try {
     const identifier = await Notifications.scheduleNotificationAsync({
       content: {
-        title: '⚡ Daily Reminder',
+        title: 'Daily Reminder',
         body: 'Don\'t forget to play today and earn points!',
         sound: true,
       },
