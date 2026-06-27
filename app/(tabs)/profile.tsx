@@ -6,7 +6,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
-import { LogOut, Star, Award, Clock, ChevronRight, Trophy, Lock, Globe, Bell, Sparkles, MessageSquare, X } from 'lucide-react-native';
+import { LogOut, Star, Award, Clock, ChevronRight, Trophy, Lock, Globe, Bell, Sparkles, MessageSquare, X, Crown } from 'lucide-react-native';
 import { useAuth } from '@/hooks/useAuth';
 import { useTournament } from '@/hooks/useTournament';
 import { useLanguage } from '@/hooks/useLanguage';
@@ -14,6 +14,7 @@ import ParticleBackground from '@/components/ParticleBackground';
 import NotificationsModal from '@/components/NotificationsModal';
 import AchievementsModal from '@/components/AchievementsModal';
 import SupportModal from '@/components/SupportModal';
+import TournamentPrizeDashboard from '@/components/TournamentPrizeDashboard';
 import { colors, spacing, radius, shadow } from '@/constants/theme';
 import { formatEthiopianMonthYear } from '@/lib/ethiopianCalendar';
 
@@ -34,6 +35,7 @@ export default function ProfileScreen() {
   const [showNotificationsModal, setShowNotificationsModal] = useState(false);
   const [showAchievementsModal, setShowAchievementsModal] = useState(false);
   const [showSupportModal, setShowSupportModal] = useState(false);
+  const [showPrizeDashboard, setShowPrizeDashboard] = useState(false);
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [passwordLoading, setPasswordLoading] = useState(false);
@@ -244,6 +246,18 @@ export default function ProfileScreen() {
             </View>
             <ChevronRight color={colors.textMuted} size={18} />
           </TouchableOpacity>
+
+          {/* Prize Dashboard */}
+          <TouchableOpacity style={[styles.settingRow, styles.prizeDashboardRow]} onPress={() => setShowPrizeDashboard(true)}>
+            <View style={styles.settingLeft}>
+              <Crown color={colors.gold} size={18} fill={colors.gold} />
+              <View style={styles.settingInfo}>
+                <Text style={[styles.settingTitle, { color: colors.gold }]}>Prize Dashboard</Text>
+                <Text style={styles.settingSub}>Top players per tournament</Text>
+              </View>
+            </View>
+            <ChevronRight color={colors.gold} size={18} />
+          </TouchableOpacity>
         </View>
 
         {/* Sign Out */}
@@ -348,6 +362,16 @@ export default function ProfileScreen() {
       >
         <SupportModal onClose={() => setShowSupportModal(false)} />
       </Modal>
+
+      {/* Prize Dashboard Modal */}
+      <Modal
+        visible={showPrizeDashboard}
+        animationType="slide"
+        presentationStyle="fullScreen"
+        onRequestClose={() => setShowPrizeDashboard(false)}
+      >
+        <TournamentPrizeDashboard onClose={() => setShowPrizeDashboard(false)} />
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -440,6 +464,14 @@ const styles = StyleSheet.create({
     flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
     paddingVertical: spacing.md, paddingHorizontal: spacing.md,
     borderBottomWidth: 1.5, borderBottomColor: '#3D1F6E35',
+  },
+  prizeDashboardRow: {
+    backgroundColor: 'rgba(255,215,0,0.05)',
+    borderColor: 'rgba(255,215,0,0.2)',
+    borderWidth: 1,
+    borderRadius: radius.md,
+    marginTop: 6,
+    marginHorizontal: 0,
   },
   settingLeft: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, flex: 1 },
   settingInfo: { gap: 2 },

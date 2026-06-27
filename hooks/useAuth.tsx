@@ -3,7 +3,11 @@ import { Session, User } from '@supabase/supabase-js';
 import { supabase, Profile } from '@/lib/supabase';
 import * as Linking from 'expo-linking';
 import { useURL } from 'expo-linking';
+import * as WebBrowser from 'expo-web-browser';
 import { notifyPointsEarned } from '@/lib/notifications';
+
+// Ensures the browser tab closes properly after Google OAuth on Android
+WebBrowser.maybeCompleteAuthSession();
 
 type AuthContextType = {
   session: Session | null;
@@ -16,6 +20,7 @@ type AuthContextType = {
   setActiveTournamentId: (id: string | null) => void;
   signUp: (identifier: { email?: string; phone?: string }, password: string, name?: string, phoneNumber?: string) => Promise<{ error: string | null; needsVerification?: boolean }>;
   signIn: (identifier: { email?: string; phone?: string }, password: string) => Promise<{ error: string | null; needsVerification?: boolean }>;
+  signInWithGoogle: () => Promise<{ error: string | null }>;
   signOut: () => Promise<void>;
   refreshProfile: () => Promise<Profile | null>;
   addPoints: (pts: number) => Promise<void>;
@@ -121,11 +126,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (error) {
         console.error('Error setting session from recovery link:', error);
       }
-    } else if (accessToken && refreshToken && type === 'signup') {
-      // Email confirmation link clicked — log user in automatically
+    } else if (accessToken && refreshToken) {
+      // Email confirmation OR Google OAuth callback — set session automatically
       const { error } = await supabase.auth.setSession({ access_token: accessToken, refresh_token: refreshToken });
       if (error) {
-        console.error('Error setting session from email confirmation link:', error);
+        console.error('Error setting session from auth callback:', error);
       }
     }
   }, []);
@@ -205,6 +210,34 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return { error: error?.message ?? null };
   };
 
+  const signInWithGoogle = async (): Promise<{ error: string | null }> => {
+    try {
+      const redirectTo = 'dilmeda://auth/callback';
+      const { data, error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo,
+          skipBrowserRedirect: true,
+        },
+      });
+      if (error) return { error: error.message };
+      if (!data.url) return { error: 'Could not open Google sign-in. Try again.' };
+
+      const result = await WebBrowser.openAuthSessionAsync(data.url, redirectTo);
+
+      if (result.type === 'success' && result.url) {
+        await handleAuthDeepLink(result.url);
+        return { error: null };
+      } else if (result.type === 'cancel' || result.type === 'dismiss') {
+        // User cancelled — not an error
+        return { error: null };
+      }
+      return { error: null };
+    } catch (err: any) {
+      return { error: err.message || 'Google sign-in failed. Please try again.' };
+    }
+  };
+
   const signOut = async () => { await supabase.auth.signOut(); };
 
   const verifyOtp = async (params: { email?: string; phone?: string; token: string; type: 'sms' | 'signup' | 'recovery' }) => {
@@ -278,7 +311,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     <AuthContext.Provider value={{
       session, user, profile, loading, isRecoveryMode, setIsRecoveryMode,
       activeTournamentId, setActiveTournamentId,
-      signUp, signIn, signOut, refreshProfile, addPoints, endGameSession,
+      signUp, signIn, signInWithGoogle, signOut, refreshProfile, addPoints, endGameSession,
       verifyOtp, sendPasswordResetOtp,
     }}>
       {children}

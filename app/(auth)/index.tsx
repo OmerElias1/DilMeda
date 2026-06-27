@@ -10,11 +10,12 @@ import { supabase } from '@/lib/supabase';
 import { colors, spacing, radius, shadow } from '@/constants/theme';
 import ParticleBackground from '@/components/ParticleBackground';
 import { Mail, Send } from 'lucide-react-native';
+import Svg, { Path, G, ClipPath, Rect, Defs } from 'react-native-svg';
 
 const { width: W, height: H } = Dimensions.get('window');
 
 export default function AuthScreen() {
-  const { signIn, signUp, session, isRecoveryMode, setIsRecoveryMode } = useAuth();
+  const { signIn, signUp, signInWithGoogle, session, isRecoveryMode, setIsRecoveryMode } = useAuth();
   const { lang, setLang, t } = useLanguage();
   const [mode, setMode] = useState<'signin' | 'signup' | 'forgot' | 'update_password' | 'verify_email'>('signin');
   const [email, setEmail] = useState('');
@@ -25,6 +26,7 @@ export default function AuthScreen() {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [loading, setLoading] = useState(false);
+  const [googleLoading, setGoogleLoading] = useState(false);
   const [resendCooldown, setResendCooldown] = useState(0);
   const resendTimer = useRef<ReturnType<typeof setInterval> | null>(null);
 
@@ -439,6 +441,50 @@ export default function AuthScreen() {
               </TouchableOpacity>
             )}
 
+            {/* Google Sign-In — only show on signin/signup */}
+            {(mode === 'signin' || mode === 'signup') && (
+              <>
+                <View style={styles.dividerRow}>
+                  <View style={styles.dividerLine} />
+                  <Text style={styles.dividerText}>OR</Text>
+                  <View style={styles.dividerLine} />
+                </View>
+
+                <TouchableOpacity
+                  style={[styles.googleBtn, googleLoading && styles.submitBtnDisabled]}
+                  onPress={async () => {
+                    setGoogleLoading(true);
+                    setError('');
+                    const result = await signInWithGoogle();
+                    setGoogleLoading(false);
+                    if (result.error) setError(result.error);
+                  }}
+                  disabled={googleLoading || loading}
+                  activeOpacity={0.85}
+                >
+                  {!googleLoading && (
+                    <Svg width={20} height={20} viewBox="0 0 48 48" style={styles.googleIcon}>
+                      <Defs>
+                        <ClipPath id="clip">
+                          <Rect width={48} height={48} />
+                        </ClipPath>
+                      </Defs>
+                      <G clipPath="url(#clip)">
+                        <Path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z" />
+                        <Path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z" />
+                        <Path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z" />
+                        <Path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z" />
+                        <Path fill="none" d="M0 0h48v48H0z" />
+                      </G>
+                    </Svg>
+                  )}
+                  <Text style={styles.googleBtnText}>
+                    {googleLoading ? 'Signing in...' : 'Continue with Google'}
+                  </Text>
+                </TouchableOpacity>
+              </>
+            )}
+
             {mode === 'verify_email' ? (
               // ── Email Verification Sent Screen ─────────────────────────
               <View style={styles.verifyContainer}>
@@ -529,104 +575,227 @@ const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.bg },
   flex: { flex: 1 },
   scroll: {
-    flexGrow: 1, alignItems: 'center', justifyContent: 'center',
-    padding: spacing.lg, paddingTop: 60, paddingBottom: 40,
+    flexGrow: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: spacing.lg,
+    paddingTop: 50,
+    paddingBottom: 32,
     minHeight: H,
   },
-  logoArea: { alignItems: 'center', marginBottom: spacing.xl + 8, position: 'relative' },
+
+  // ── Logo ──────────────────────────────────────────────────────────
+  logoArea: {
+    alignItems: 'center',
+    marginBottom: 20,
+  },
   logoRing: {
-    width: 138, height: 138, borderRadius: 69,
-    borderWidth: 3, borderColor: colors.gold,
-    alignItems: 'center', justifyContent: 'center',
-    marginBottom: 14,
+    width: 90,
+    height: 90,
+    borderRadius: 45,
+    borderWidth: 2.5,
+    borderColor: colors.gold,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 10,
     ...shadow.gold,
   },
-  logoIcon: { width: 130, height: 130, borderRadius: 65 },
+  logoIcon: { width: 84, height: 84, borderRadius: 42 },
   logoText: {
-    fontSize: 34, fontWeight: '900', color: colors.gold, letterSpacing: 2,
-    textShadowColor: colors.gold, textShadowOffset: { width: 0, height: 0 }, textShadowRadius: 12,
+    fontSize: 28,
+    fontWeight: '900',
+    color: colors.gold,
+    letterSpacing: 2,
+    textShadowColor: colors.gold,
+    textShadowOffset: { width: 0, height: 0 },
+    textShadowRadius: 10,
   },
-  logoTagline: { color: colors.textSecondary, fontSize: 13, marginTop: 4, letterSpacing: 0.5 },
+  logoTagline: {
+    color: colors.textSecondary,
+    fontSize: 12,
+    marginTop: 3,
+    letterSpacing: 0.5,
+  },
+
+  // ── Card ──────────────────────────────────────────────────────────
   card: {
-    width: '100%', maxWidth: 400,
+    width: '100%',
+    maxWidth: 400,
     backgroundColor: colors.bgCard,
-    borderRadius: radius.xl, padding: spacing.xl,
-    borderWidth: 1, borderColor: colors.border,
+    borderRadius: radius.xl,
+    padding: 20,
+    borderWidth: 1,
+    borderColor: colors.border,
     ...shadow.card,
   },
+
+  // ── Mode toggle ───────────────────────────────────────────────────
   modeToggle: {
-    flexDirection: 'row', backgroundColor: colors.bgDeep, borderRadius: radius.lg,
-    padding: 4, marginBottom: spacing.lg,
+    flexDirection: 'row',
+    backgroundColor: colors.bgDeep,
+    borderRadius: radius.lg,
+    padding: 3,
+    marginBottom: 16,
   },
-  modeBtn: { flex: 1, paddingVertical: 10, borderRadius: radius.md, alignItems: 'center' },
+  modeBtn: {
+    flex: 1,
+    paddingVertical: 9,
+    borderRadius: radius.md,
+    alignItems: 'center',
+  },
   modeBtnActive: { backgroundColor: colors.gold },
-  modeBtnText: { color: colors.textMuted, fontSize: 14, fontWeight: '600' },
+  modeBtnText: { color: colors.textMuted, fontSize: 13, fontWeight: '600' },
   modeBtnTextActive: { color: colors.bgDeep, fontWeight: '800' },
-  cardTitle: { color: colors.textPrimary, fontSize: 22, fontWeight: '800', marginBottom: 4 },
-  cardSub: { color: colors.textSecondary, fontSize: 13, marginBottom: spacing.lg },
-  inputGroup: { marginBottom: spacing.md },
-  inputLabel: { color: colors.textSecondary, fontSize: 12, fontWeight: '600', marginBottom: 6, letterSpacing: 0.5 },
-  optionalTag: { color: colors.textMuted, fontWeight: '400', fontSize: 11 },
+
+  // ── Card text ─────────────────────────────────────────────────────
+  cardTitle: {
+    color: colors.textPrimary,
+    fontSize: 20,
+    fontWeight: '800',
+    marginBottom: 2,
+  },
+  cardSub: {
+    color: colors.textSecondary,
+    fontSize: 12,
+    marginBottom: 14,
+  },
+
+  // ── Inputs ────────────────────────────────────────────────────────
+  inputGroup: { marginBottom: 12 },
+  inputLabel: {
+    color: colors.textSecondary,
+    fontSize: 11,
+    fontWeight: '600',
+    marginBottom: 5,
+    letterSpacing: 0.5,
+  },
+  optionalTag: { color: colors.textMuted, fontWeight: '400', fontSize: 10 },
   input: {
-    backgroundColor: colors.bgDeep, borderRadius: radius.md, padding: spacing.md,
-    color: colors.textPrimary, fontSize: 15, borderWidth: 1, borderColor: colors.border,
+    backgroundColor: colors.bgDeep,
+    borderRadius: radius.md,
+    paddingHorizontal: 14,
+    paddingVertical: 11,
+    color: colors.textPrimary,
+    fontSize: 14,
+    borderWidth: 1,
+    borderColor: colors.border,
   },
+
+  // ── Feedback ──────────────────────────────────────────────────────
   errorBox: {
-    backgroundColor: 'rgba(255,68,68,0.1)', borderRadius: radius.md, padding: spacing.sm,
-    borderWidth: 1, borderColor: colors.error, marginBottom: spacing.md,
+    backgroundColor: 'rgba(255,68,68,0.1)',
+    borderRadius: radius.md,
+    padding: spacing.sm,
+    borderWidth: 1,
+    borderColor: colors.error,
+    marginBottom: 10,
   },
-  errorText: { color: colors.error, fontSize: 13 },
+  errorText: { color: colors.error, fontSize: 12 },
   successBox: {
-    backgroundColor: 'rgba(0,255,136,0.1)', borderRadius: radius.md, padding: spacing.sm,
-    borderWidth: 1, borderColor: colors.success, marginBottom: spacing.md,
+    backgroundColor: 'rgba(0,255,136,0.1)',
+    borderRadius: radius.md,
+    padding: spacing.sm,
+    borderWidth: 1,
+    borderColor: colors.success,
+    marginBottom: 10,
   },
-  successText: { color: colors.success, fontSize: 13 },
+  successText: { color: colors.success, fontSize: 12 },
+
+  // ── Submit button ─────────────────────────────────────────────────
   submitBtn: {
-    backgroundColor: colors.gold, borderRadius: radius.full, padding: spacing.md,
-    alignItems: 'center', marginTop: 4, ...shadow.gold,
+    backgroundColor: colors.gold,
+    borderRadius: radius.full,
+    paddingVertical: 13,
+    alignItems: 'center',
+    marginTop: 2,
+    ...shadow.gold,
   },
   submitBtnDisabled: { opacity: 0.6 },
-  submitBtnText: { color: colors.bgDeep, fontSize: 16, fontWeight: '800' },
-  resendBtn: {
-    borderWidth: 1.5, borderColor: colors.gold, borderRadius: radius.full,
-    paddingVertical: spacing.sm + 2, paddingHorizontal: spacing.lg,
-    alignItems: 'center', backgroundColor: 'transparent',
+  submitBtnText: { color: colors.bgDeep, fontSize: 15, fontWeight: '800' },
+
+  // ── OR divider ────────────────────────────────────────────────────
+  dividerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginVertical: 14,
   },
-  resendBtnText: { color: colors.gold, fontSize: 14, fontWeight: '700' },
-  switchMode: { alignItems: 'center', marginTop: spacing.md },
+  dividerLine: {
+    flex: 1,
+    height: 1,
+    backgroundColor: 'rgba(255,255,255,0.08)',
+  },
+  dividerText: {
+    color: colors.textMuted,
+    fontSize: 11,
+    fontWeight: '600',
+    marginHorizontal: 10,
+    letterSpacing: 1.5,
+  },
+
+  // ── Google button ─────────────────────────────────────────────────
+  googleBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 10,
+    backgroundColor: 'rgba(255,255,255,0.06)',
+    borderRadius: radius.full,
+    paddingVertical: 13,
+    borderWidth: 1.5,
+    borderColor: 'rgba(255,255,255,0.15)',
+  },
+  googleIcon: {},
+  googleBtnText: {
+    color: colors.textPrimary,
+    fontSize: 14,
+    fontWeight: '700',
+    letterSpacing: 0.2,
+  },
+
+  // ── Switch mode link ──────────────────────────────────────────────
+  switchMode: { alignItems: 'center', marginTop: 14 },
   switchModeText: { color: colors.textSecondary, fontSize: 13 },
   switchModeLink: { color: colors.gold, fontWeight: '700' },
+
+  // ── Forgot / resend ───────────────────────────────────────────────
   forgotBtn: { alignSelf: 'flex-end', marginTop: 6 },
-  forgotBtnText: { color: colors.gold, fontSize: 13, fontWeight: '600' },
+  forgotBtnText: { color: colors.gold, fontSize: 12, fontWeight: '600' },
+  resendBtn: {
+    borderWidth: 1.5,
+    borderColor: colors.gold,
+    borderRadius: radius.full,
+    paddingVertical: 11,
+    paddingHorizontal: spacing.lg,
+    alignItems: 'center',
+    backgroundColor: 'transparent',
+  },
+  resendBtnText: { color: colors.gold, fontSize: 14, fontWeight: '700' },
+
+  // ── Language toggle ───────────────────────────────────────────────
   langToggleContainer: {
     position: 'absolute',
-    top: 60,
+    top: 52,
     right: spacing.lg,
     flexDirection: 'row',
-    backgroundColor: 'rgba(255,255,255,0.1)',
+    backgroundColor: 'rgba(255,255,255,0.08)',
     borderRadius: radius.md,
     padding: 2,
     zIndex: 10,
   },
   langToggleBtn: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
+    paddingHorizontal: 11,
+    paddingVertical: 5,
     borderRadius: radius.sm,
   },
-  langToggleBtnActive: {
-    backgroundColor: colors.gold,
-  },
-  langToggleText: {
-    color: colors.textMuted,
-    fontSize: 12,
-    fontWeight: '700',
-  },
-  langToggleTextActive: {
-    color: colors.bgDeep,
-  },
-  // Email verification screen
+  langToggleBtnActive: { backgroundColor: colors.gold },
+  langToggleText: { color: colors.textMuted, fontSize: 11, fontWeight: '700' },
+  langToggleTextActive: { color: colors.bgDeep },
+
+  // ── Email verification screen ─────────────────────────────────────
   verifyContainer: {
-    alignItems: 'center', gap: spacing.md, paddingVertical: spacing.sm,
+    alignItems: 'center',
+    gap: spacing.md,
+    paddingVertical: spacing.sm,
   },
   verifyIconWrapper: {
     marginBottom: 4,
@@ -634,16 +803,28 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   verifyTitle: {
-    color: colors.gold, fontSize: 22, fontWeight: '900', letterSpacing: 0.3,
+    color: colors.gold,
+    fontSize: 20,
+    fontWeight: '900',
+    letterSpacing: 0.3,
   },
   verifySub: {
-    color: colors.textSecondary, fontSize: 14, textAlign: 'center',
+    color: colors.textSecondary,
+    fontSize: 13,
+    textAlign: 'center',
   },
   verifyEmail: {
-    color: colors.neon, fontSize: 15, fontWeight: '800', textAlign: 'center',
+    color: colors.neon,
+    fontSize: 14,
+    fontWeight: '800',
+    textAlign: 'center',
   },
   verifyInstructions: {
-    color: colors.textMuted, fontSize: 12, textAlign: 'center', lineHeight: 18,
+    color: colors.textMuted,
+    fontSize: 12,
+    textAlign: 'center',
+    lineHeight: 18,
     paddingHorizontal: spacing.sm,
   },
 });
+
