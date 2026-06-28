@@ -7,11 +7,6 @@
     "icon": "./assets/images/image.png",
     "scheme": "dilmeda",
     "userInterfaceStyle": "dark",
-    "splash": {
-      "image": "./assets/images/image.png",
-      "resizeMode": "contain",
-      "backgroundColor": "#0D0618"
-    },
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.oek04.dilmeda"
@@ -19,7 +14,7 @@
     "android": {
       "package": "com.oek04.dilmeda",
       "adaptiveIcon": {
-        "foregroundImage": "./assets/images/image.png",
+        "foregroundImage": "./assets/images/icon.png",
         "backgroundColor": "#0D0618"
       }
     },
@@ -35,7 +30,7 @@
       [
         "expo-splash-screen",
         {
-          "image": "./assets/images/image.png",
+          "image": "./assets/images/icon.png",
           "imageWidth": 200,
           "resizeMode": "contain",
           "backgroundColor": "#0D0618"
