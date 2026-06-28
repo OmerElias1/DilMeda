@@ -44,10 +44,6 @@ const GAMES = [
   { id: 'rhythm' as GameId, title: 'Rhythm Pulse', sub: 'Tap to the neon beat', Icon: Music, color: ['#052E2A', '#020D0C'] as [string, string], pts: 'Unlimited', diff: 'MEDIUM', tag: 'RHYTHM' },
   { id: 'deflector' as GameId, title: 'Laser Deflector', sub: 'Bounce laser balls away', Icon: ShieldAlert, color: ['#2E2A05', '#0D0C02'] as [string, string], pts: 'Unlimited', diff: 'MEDIUM', tag: 'ARCADE' },
   { id: 'orbit' as GameId, title: 'Color Orbit', sub: 'Spin to match laser colors', Icon: RefreshCw, color: ['#2E052A', '#0D020C'] as [string, string], pts: 'Unlimited', diff: 'HARD', tag: 'COLOR MATCH' },
-  { id: 'miner' as GameId, title: 'Meda Miner', sub: 'Grab gold and gems!', Icon: Zap, color: ['#472202', '#1A0B2E'] as [string, string], pts: 'Unlimited', diff: 'MEDIUM', tag: 'CLAW CRANE' },
-  { id: 'shield' as GameId, title: 'Neon Shield', sub: 'Defend the central core', Icon: Shield, color: ['#1E0F42', '#0D0618'] as [string, string], pts: 'Unlimited', diff: 'MEDIUM', tag: 'DEFENSE' },
-  { id: 'path' as GameId, title: 'Cyber Path', sub: 'Trace the neon path', Icon: Brain, color: ['#0E3320', '#0D0618'] as [string, string], pts: 'Unlimited', diff: 'HARD', tag: 'MEMORY' },
-  { id: 'drift' as GameId, title: 'Astro Drift', sub: 'Drift through the asteroids', Icon: Wind, color: ['#031A2E', '#050B1A'] as [string, string], pts: 'Unlimited', diff: 'HARD', tag: 'RACING' },
 ];
 
 const DIFF_COLORS: Record<string, string> = {
