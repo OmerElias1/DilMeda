@@ -297,7 +297,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // 1. Award points
     await addPoints(pts);
     // 2. Record the game – updates streak & games_played and sets needs_ad_watch
-    await supabase.rpc('record_game_played', { p_user_id: user.id });
+    const tz = (() => {
+      try {
+        return Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC';
+      } catch {
+        return 'UTC';
+      }
+    })();
+    await supabase.rpc('record_game_played', { p_user_id: user.id, p_timezone: tz });
     // 3. Refresh local profile so UI reflects updated stats & streak
     await refreshProfile();
     // 4. Send notification if points were earned

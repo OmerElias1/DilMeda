@@ -150,7 +150,14 @@ export default function LuckySpinWheel({ onClose }: Props) {
         }
 
         // ── 2. Record game played (sets needs_ad_watch, updates streak) ───────
-        await supabase.rpc('record_game_played', { p_user_id: user.id });
+        const tz = (() => {
+          try {
+            return Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC';
+          } catch {
+            return 'UTC';
+          }
+        })();
+        await supabase.rpc('record_game_played', { p_user_id: user.id, p_timezone: tz });
 
         // ── 3. Unlock lucky_spinner achievement if 100pts were won ────────────
         if (seg.points >= 100) {

@@ -1,7 +1,7 @@
 -- Migration to reduce ad frequency: watch ads after every 3 games instead of 2
 -- Apply this in the Supabase SQL Editor to update your remote database immediately.
 
-CREATE OR REPLACE FUNCTION record_game_played(p_user_id uuid)
+CREATE OR REPLACE FUNCTION record_game_played(p_user_id uuid, p_timezone text DEFAULT 'UTC')
 RETURNS void AS $$
 DECLARE
   last_played timestamptz;
@@ -14,18 +14,18 @@ BEGIN
   FROM profiles 
   WHERE id = p_user_id;
 
-  today_date := now()::date;
+  -- Calculate dates based on the user's local timezone
+  today_date := (now() AT TIME ZONE p_timezone)::date;
 
   IF last_played IS NULL THEN
     curr_streak := 1;
   ELSE
-    last_played_date := last_played::date;
+    last_played_date := (last_played AT TIME ZONE p_timezone)::date;
     IF last_played_date = today_date THEN
       -- Already played today, streak remains unchanged
-      curr_streak := daily_streak;
     ELSIF last_played_date = today_date - 1 THEN
       -- Played yesterday, increment streak
-      curr_streak := daily_streak + 1;
+      curr_streak := curr_streak + 1;
     ELSE
       -- Played before yesterday, reset streak
       curr_streak := 1;
