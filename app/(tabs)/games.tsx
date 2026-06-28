@@ -23,26 +23,34 @@ import CyberStack from '@/games/CyberStack';
 import RhythmPulse from '@/games/RhythmPulse';
 import LaserDeflector from '@/games/LaserDeflector';
 import ColorOrbit from '@/games/ColorOrbit';
+import MedaMiner from '@/games/MedaMiner';
+import NeonShield from '@/games/NeonShield';
+import CyberPath from '@/games/CyberPath';
+import AstroDrift from '@/games/AstroDrift';
 import { Tournament } from '@/lib/supabase';
 import { colors, spacing, radius, shadow } from '@/constants/theme';
 
-type GameId = 'clicker' | 'avoider' | 'memory' | 'spin' | 'tree' | 'sky' | 'metro' | 'stack' | 'rhythm' | 'deflector' | 'orbit';
+type GameId = 'clicker' | 'avoider' | 'memory' | 'spin' | 'tree' | 'sky' | 'metro' | 'stack' | 'rhythm' | 'deflector' | 'orbit' | 'miner' | 'shield' | 'path' | 'drift';
 
 const GAMES = [
-  { id: 'clicker' as GameId, title: 'Meda Clicker',  sub: 'Tap the gold coin!',         Icon: Zap,    color: ['#472202','#1A0B2E'] as [string,string], pts: '~60 pts',    diff: 'EASY', tag: 'COIN TAP' },
-  { id: 'avoider' as GameId, title: 'Ad-Avoider',    sub: 'Dodge bad ads, catch gold',   Icon: Shield, color: ['#1E0F42','#0D0618'] as [string,string], pts: 'Unlimited', diff: 'MEDIUM', tag: 'DODGE AD' },
-  { id: 'memory'  as GameId, title: 'Memory Match',  sub: 'Match all pairs',             Icon: Brain,  color: ['#0E3320','#0D0618'] as [string,string], pts: '90 pts',    diff: 'MEDIUM', tag: 'MEMORY' },
-  { id: 'spin'    as GameId, title: 'Lucky Spin',    sub: 'Spin once daily',             Icon: Dices,  color: ['#3A2202','#1A0B2E'] as [string,string], pts: '100 pts',   diff: 'LUCK', tag: 'DAILY WHEEL' },
-  { id: 'tree'    as GameId, title: 'Tree Grower',   sub: 'Water daily to earn',         Icon: Leaf,   color: ['#0A3315','#0D1A0B'] as [string,string], pts: '60 pts',    diff: 'DAILY', tag: 'SIMULATION' },
-  { id: 'sky'     as GameId, title: 'Sky Drifter',   sub: 'Tap to flap, dodge pipes',    Icon: Wind,   color: ['#031A2E','#050B1A'] as [string,string], pts: 'Unlimited', diff: 'HARD',  tag: 'FLAPPY' },
-  { id: 'metro'   as GameId, title: 'Metro Rush',    sub: 'Dodge obstacles, dash far',   Icon: Flame,  color: ['#2E1A0A','#1A0B05'] as [string,string], pts: 'Unlimited', diff: 'HARD',  tag: 'RUNNER' },
-  { id: 'stack'   as GameId, title: 'Cyber Stack',   sub: 'Stack neon blocks high',      Icon: Layers, color: ['#2E0515','#0D0208'] as [string,string], pts: 'Unlimited', diff: 'EASY',  tag: 'STACKER' },
-  { id: 'rhythm'  as GameId, title: 'Rhythm Pulse',  sub: 'Tap to the neon beat',        Icon: Music,  color: ['#052E2A','#020D0C'] as [string,string], pts: 'Unlimited', diff: 'MEDIUM', tag: 'RHYTHM' },
-  { id: 'deflector' as GameId, title: 'Laser Deflector', sub: 'Bounce laser balls away',  Icon: ShieldAlert, color: ['#2E2A05','#0D0C02'] as [string,string], pts: 'Unlimited', diff: 'MEDIUM', tag: 'ARCADE' },
-  { id: 'orbit'   as GameId, title: 'Color Orbit',   sub: 'Spin to match laser colors',  Icon: RefreshCw, color: ['#2E052A','#0D020C'] as [string,string], pts: 'Unlimited', diff: 'HARD',  tag: 'COLOR MATCH' },
+  { id: 'clicker' as GameId, title: 'Meda Clicker', sub: 'Tap the gold coin!', Icon: Zap, color: ['#472202', '#1A0B2E'] as [string, string], pts: '~60 pts', diff: 'EASY', tag: 'COIN TAP' },
+  { id: 'avoider' as GameId, title: 'Ad-Avoider', sub: 'Dodge bad ads, catch gold', Icon: Shield, color: ['#1E0F42', '#0D0618'] as [string, string], pts: 'Unlimited', diff: 'MEDIUM', tag: 'DODGE AD' },
+  { id: 'memory' as GameId, title: 'Memory Match', sub: 'Match all pairs', Icon: Brain, color: ['#0E3320', '#0D0618'] as [string, string], pts: '90 pts', diff: 'MEDIUM', tag: 'MEMORY' },
+  { id: 'spin' as GameId, title: 'Lucky Spin', sub: 'Spin once daily', Icon: Dices, color: ['#3A2202', '#1A0B2E'] as [string, string], pts: '100 pts', diff: 'LUCK', tag: 'DAILY WHEEL' },
+  { id: 'tree' as GameId, title: 'Tree Grower', sub: 'Water daily to earn', Icon: Leaf, color: ['#0A3315', '#0D1A0B'] as [string, string], pts: '60 pts', diff: 'DAILY', tag: 'SIMULATION' },
+  { id: 'sky' as GameId, title: 'Sky Drifter', sub: 'Tap to flap, dodge pipes', Icon: Wind, color: ['#031A2E', '#050B1A'] as [string, string], pts: 'Unlimited', diff: 'HARD', tag: 'FLAPPY' },
+  { id: 'metro' as GameId, title: 'Metro Rush', sub: 'Dodge obstacles, dash far', Icon: Flame, color: ['#2E1A0A', '#1A0B05'] as [string, string], pts: 'Unlimited', diff: 'HARD', tag: 'RUNNER' },
+  { id: 'stack' as GameId, title: 'Cyber Stack', sub: 'Stack neon blocks high', Icon: Layers, color: ['#2E0515', '#0D0208'] as [string, string], pts: 'Unlimited', diff: 'EASY', tag: 'STACKER' },
+  { id: 'rhythm' as GameId, title: 'Rhythm Pulse', sub: 'Tap to the neon beat', Icon: Music, color: ['#052E2A', '#020D0C'] as [string, string], pts: 'Unlimited', diff: 'MEDIUM', tag: 'RHYTHM' },
+  { id: 'deflector' as GameId, title: 'Laser Deflector', sub: 'Bounce laser balls away', Icon: ShieldAlert, color: ['#2E2A05', '#0D0C02'] as [string, string], pts: 'Unlimited', diff: 'MEDIUM', tag: 'ARCADE' },
+  { id: 'orbit' as GameId, title: 'Color Orbit', sub: 'Spin to match laser colors', Icon: RefreshCw, color: ['#2E052A', '#0D020C'] as [string, string], pts: 'Unlimited', diff: 'HARD', tag: 'COLOR MATCH' },
+  { id: 'miner' as GameId, title: 'Meda Miner', sub: 'Grab gold and gems!', Icon: Zap, color: ['#472202', '#1A0B2E'] as [string, string], pts: 'Unlimited', diff: 'MEDIUM', tag: 'CLAW CRANE' },
+  { id: 'shield' as GameId, title: 'Neon Shield', sub: 'Defend the central core', Icon: Shield, color: ['#1E0F42', '#0D0618'] as [string, string], pts: 'Unlimited', diff: 'MEDIUM', tag: 'DEFENSE' },
+  { id: 'path' as GameId, title: 'Cyber Path', sub: 'Trace the neon path', Icon: Brain, color: ['#0E3320', '#0D0618'] as [string, string], pts: 'Unlimited', diff: 'HARD', tag: 'MEMORY' },
+  { id: 'drift' as GameId, title: 'Astro Drift', sub: 'Drift through the asteroids', Icon: Wind, color: ['#031A2E', '#050B1A'] as [string, string], pts: 'Unlimited', diff: 'HARD', tag: 'RACING' },
 ];
 
-const DIFF_COLORS: Record<string,string> = {
+const DIFF_COLORS: Record<string, string> = {
   EASY: colors.neon, MEDIUM: colors.gold, HARD: '#00BFFF', LUCK: '#FF9F43', DAILY: '#00FF88',
 };
 
@@ -57,7 +65,7 @@ function TournamentCard({
 }) {
   const tTime = useTimeLeft(tournament.end_time);
   const expired = tTime.expired;
-  
+
   const rTime = useTimeLeft(tournament.registration_deadline ?? undefined);
   const regExpired = tournament.registration_deadline ? rTime.expired : expired;
 
@@ -68,7 +76,7 @@ function TournamentCard({
     <View style={[styles.tCard, expired && { opacity: 0.55 }]}>
       <LinearGradient colors={[bg, '#0D0618']} style={styles.tCardGradient}>
         <View style={styles.cardHeaderAccent} />
-        
+
         {/* Header row */}
         <View style={styles.tCardHeader}>
           <View style={styles.tCardIconWrap}>
@@ -213,16 +221,20 @@ function GameLobby({
     };
     switch (id) {
       case 'clicker': return <MedaClicker onClose={closeGame} onPlayAgain={onPlayAgain} />;
-      case 'avoider': return <AdAvoider   onClose={closeGame} onPlayAgain={onPlayAgain} />;
-      case 'memory':  return <MemoryMatch onClose={closeGame} onPlayAgain={onPlayAgain} />;
-      case 'spin':    return <LuckySpinWheel onClose={closeGame} />;
-      case 'tree':    return <TreeGrower  onClose={closeGame} />;
-      case 'sky':     return <SkyDrifter  onClose={closeGame} onPlayAgain={onPlayAgain} />;
-      case 'metro':   return <MetroRush   onClose={closeGame} onPlayAgain={onPlayAgain} />;
-      case 'stack':   return <CyberStack  onClose={closeGame} onPlayAgain={onPlayAgain} />;
-      case 'rhythm':  return <RhythmPulse onClose={closeGame} onPlayAgain={onPlayAgain} />;
+      case 'avoider': return <AdAvoider onClose={closeGame} onPlayAgain={onPlayAgain} />;
+      case 'memory': return <MemoryMatch onClose={closeGame} onPlayAgain={onPlayAgain} />;
+      case 'spin': return <LuckySpinWheel onClose={closeGame} />;
+      case 'tree': return <TreeGrower onClose={closeGame} />;
+      case 'sky': return <SkyDrifter onClose={closeGame} onPlayAgain={onPlayAgain} />;
+      case 'metro': return <MetroRush onClose={closeGame} onPlayAgain={onPlayAgain} />;
+      case 'stack': return <CyberStack onClose={closeGame} onPlayAgain={onPlayAgain} />;
+      case 'rhythm': return <RhythmPulse onClose={closeGame} onPlayAgain={onPlayAgain} />;
       case 'deflector': return <LaserDeflector onClose={closeGame} onPlayAgain={onPlayAgain} />;
-      case 'orbit':   return <ColorOrbit  onClose={closeGame} onPlayAgain={onPlayAgain} />;
+      case 'orbit': return <ColorOrbit onClose={closeGame} onPlayAgain={onPlayAgain} />;
+      case 'miner': return <MedaMiner onClose={closeGame} onPlayAgain={onPlayAgain} />;
+      case 'shield': return <NeonShield onClose={closeGame} onPlayAgain={onPlayAgain} />;
+      case 'path': return <CyberPath onClose={closeGame} onPlayAgain={onPlayAgain} />;
+      case 'drift': return <AstroDrift onClose={closeGame} onPlayAgain={onPlayAgain} />;
     }
   };
 
@@ -274,12 +286,12 @@ function GameLobby({
             <LinearGradient colors={game.color} style={styles.gameCardGrad}>
               {/* Card accent indicator */}
               <View style={[styles.gameCardAccent, { backgroundColor: DIFF_COLORS[game.diff] }]} />
-              
+
               <View style={styles.gameCardRow}>
                 <View style={[styles.gameIconWrap, { borderColor: DIFF_COLORS[game.diff] + '40' }]}>
                   <game.Icon color={colors.gold} size={24} fill={game.id === 'spin' ? colors.gold : 'transparent'} />
                 </View>
-                
+
                 <View style={styles.gameInfo}>
                   <View style={styles.gameTitleRow}>
                     <Text style={styles.gameTitle}>{t(('game' + game.id.charAt(0).toUpperCase() + game.id.slice(1) + 'Title') as any)}</Text>
@@ -288,7 +300,7 @@ function GameLobby({
                     </View>
                   </View>
                   <Text style={styles.gameSub}>{t(('game' + game.id.charAt(0).toUpperCase() + game.id.slice(1) + 'Sub') as any)}</Text>
-                  
+
                   <View style={styles.gameBadgeRow}>
                     <View style={styles.gameTagBadge}>
                       <Text style={styles.gameTagText}>{t(('game' + game.id.charAt(0).toUpperCase() + game.id.slice(1) + 'Tag') as any)}</Text>
@@ -296,7 +308,7 @@ function GameLobby({
                     <Text style={styles.gamePts}>{t('rewardLabel')} {t(('game' + game.id.charAt(0).toUpperCase() + game.id.slice(1) + 'Pts') as any)}</Text>
                   </View>
                 </View>
-                
+
                 <View style={[styles.playBtn, { shadowColor: DIFF_COLORS[game.diff] }]}>
                   <Play color={colors.bgDeep} size={15} fill={colors.bgDeep} />
                 </View>
@@ -438,7 +450,7 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1.5, borderBottomColor: '#3D1F6E60',
   },
   headerTitle: { color: colors.gold, fontSize: 20, fontWeight: '900', letterSpacing: 0.8 },
-  headerSub:   { color: colors.textSecondary, fontSize: 11, marginTop: 1, opacity: 0.8 },
+  headerSub: { color: colors.textSecondary, fontSize: 11, marginTop: 1, opacity: 0.8 },
 
   loadingWrap: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: spacing.md },
   loadingText: { color: colors.textMuted, fontSize: 13, fontWeight: '700', letterSpacing: 0.5 },
@@ -448,7 +460,7 @@ const styles = StyleSheet.create({
 
   emptyWrap: { alignItems: 'center', justifyContent: 'center', paddingTop: 80, gap: spacing.sm },
   emptyText: { color: colors.textSecondary, fontSize: 16, fontWeight: '800' },
-  emptySub:  { color: colors.textMuted, fontSize: 12 },
+  emptySub: { color: colors.textMuted, fontSize: 12 },
 
   /* Tournament card list */
   tCard: { borderRadius: radius.xl, overflow: 'hidden', borderWidth: 1.5, borderColor: '#3D1F6E60', ...shadow.card },
@@ -505,7 +517,7 @@ const styles = StyleSheet.create({
   },
   campaignBadgeText: { color: colors.neon, fontSize: 8, fontWeight: '900', letterSpacing: 0.8 },
   lobbyBannerTitle: { color: colors.textPrimary, fontSize: 16, fontWeight: '900', letterSpacing: 0.2 },
-  lobbyBannerSub:   { color: colors.textSecondary, fontSize: 12, marginTop: 1, opacity: 0.8 },
+  lobbyBannerSub: { color: colors.textSecondary, fontSize: 12, marginTop: 1, opacity: 0.8 },
   lobbyBannerRight: { alignItems: 'flex-end', gap: 4 },
   lobbyPointsBadge: {
     flexDirection: 'row', alignItems: 'center', gap: 4,
@@ -514,7 +526,7 @@ const styles = StyleSheet.create({
     borderWidth: 1, borderColor: 'rgba(255,215,0,0.3)',
   },
   lobbyPointsText: { color: colors.gold, fontWeight: '900', fontSize: 12, letterSpacing: 0.2 },
-  lobbyCountdown:  { color: colors.textSecondary, fontSize: 11, fontWeight: '600' },
+  lobbyCountdown: { color: colors.textSecondary, fontSize: 11, fontWeight: '600' },
 
   lobbySectionTitle: { color: '#8F7EA6', fontSize: 11, fontWeight: '900', letterSpacing: 1.2, marginVertical: 4 },
 
@@ -533,7 +545,7 @@ const styles = StyleSheet.create({
   gameTitleRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   gameTitle: { color: colors.textPrimary, fontSize: 15, fontWeight: '900', letterSpacing: 0.2 },
   diffBadge: { borderWidth: 1, borderRadius: radius.sm, paddingHorizontal: 6, paddingVertical: 1 },
-  diffText:  { fontSize: 8, fontWeight: '900', letterSpacing: 0.5 },
+  diffText: { fontSize: 8, fontWeight: '900', letterSpacing: 0.5 },
   gameSub: { color: colors.textSecondary, fontSize: 11, opacity: 0.8 },
   gameBadgeRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 4 },
   gameTagBadge: {
