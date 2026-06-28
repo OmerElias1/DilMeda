@@ -96,11 +96,17 @@ export default function MedaClicker({ onClose, onPlayAgain }: Props) {
 
   const handleTap = () => {
     if (phase !== 'playing') return;
+    const now = Date.now();
+
+    // Anti-cheat: prevent autoclickers (max ~15 taps per second)
+    if (lastTapRef.current > 0 && now - lastTapRef.current < 65) {
+      return;
+    }
+
     countRef.current++;
     setCount(countRef.current);
 
     // Combo tracking
-    const now = Date.now();
     if (now - lastTapRef.current < 350) {
       comboRef.current++;
     } else {

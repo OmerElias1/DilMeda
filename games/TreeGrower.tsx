@@ -172,6 +172,13 @@ const tv = StyleSheet.create({
   soilLine: { width: 40, height: 2, backgroundColor: '#5A3520', borderRadius: 1, marginTop: 2 },
 });
 
+function getLocalDateString(dateInput: string | Date | null) {
+  if (!dateInput) return '';
+  const d = new Date(dateInput);
+  if (isNaN(d.getTime())) return '';
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+
 // ── Main Component ──
 export default function TreeGrower({ onClose }: Props) {
   const { user, addPoints } = useAuth();
@@ -212,12 +219,10 @@ export default function TreeGrower({ onClose }: Props) {
         .single();
 
       if (data) {
-        const today = new Date().toDateString();
-        const storedDate = data.last_water_date
-          ? new Date(data.last_water_date).toDateString()
-          : null;
+        const todayStr = getLocalDateString(new Date());
+        const storedDateStr = getLocalDateString(data.last_water_date);
 
-        if (storedDate !== today) {
+        if (storedDateStr !== todayStr) {
           const newWaterCount = (data.water_count ?? 0) + FREE_WATERS_PER_DAY;
           await supabase.from('profiles').update({
             waters_used_today: 0,
