@@ -4,7 +4,7 @@ import { supabase, Profile } from '@/lib/supabase';
 import * as Linking from 'expo-linking';
 import { useURL } from 'expo-linking';
 import * as WebBrowser from 'expo-web-browser';
-import { notifyPointsEarned } from '@/lib/notifications';
+import { notifyRankAlert } from '@/lib/notifications';
 
 // Ensures the browser tab closes properly after Google OAuth on Android
 WebBrowser.maybeCompleteAuthSession();
@@ -307,10 +307,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     await supabase.rpc('record_game_played', { p_user_id: user.id, p_timezone: tz });
     // 3. Refresh local profile so UI reflects updated stats & streak
     await refreshProfile();
-    // 4. Send notification if points were earned
+    // 4. Send competitive rank-alert notification
     if (pts > 0) {
-      const newPoints = oldPoints + pts;
-      await notifyPointsEarned(user.id, pts, newPoints);
+      await notifyRankAlert(user.id, activeTournamentIdRef.current);
     }
   };
 

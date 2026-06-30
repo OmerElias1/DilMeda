@@ -11,7 +11,7 @@ import AdPlayer from '@/components/AdPlayer';
 
 type Props = { onClose: () => void };
 
-const MAX_HEIGHT = 20;
+// Tree grows infinitely — no MAX_HEIGHT cap
 const FREE_WATERS_PER_DAY = 5;
 const POINTS_PER_LEVEL = 3;
 const { width: SW } = Dimensions.get('window');
@@ -22,19 +22,37 @@ function getTreeLabel(h: number) {
   if (h < 6) return 'Sprout';
   if (h < 10) return 'Young Tree';
   if (h < 15) return 'Full Tree';
-  return 'Ancient Tree';
+  if (h < 25) return 'Ancient Tree';
+  if (h < 40) return 'Mythic Tree';
+  if (h < 60) return 'Celestial Tree';
+  if (h < 85) return 'Eternal Tree';
+  return `Legend Lv.${Math.floor((h - 85) / 20) + 1}`;
 }
 
 function getStageColor(h: number) {
   if (h === 0) return '#6B5A8E';
   if (h < 6) return '#00FF88';
   if (h < 15) return '#00CC66';
-  return '#FFD700';
+  if (h < 25) return '#FFD700';
+  if (h < 40) return '#FF8C00';
+  if (h < 60) return '#FF44AA';
+  if (h < 85) return '#AA44FF';
+  return '#00EEFF';
 }
 
 // ── Realistic Tree Component ──
+// Stage breakpoints for visual scaling — repeats every 20 levels above 20
+function getVisualPct(h: number) {
+  if (h <= 20) return h / 20;
+  // After level 20, cycle within the current 20-level band for visual size
+  const band = Math.floor((h - 1) / 20);
+  const inBand = ((h - 1) % 20) + 1;
+  // Clamp so tree stays fully grown visually, but label/color keeps changing
+  return Math.min(1, (band + inBand / 20) / 2);
+}
+
 function TreeVisual({ height }: { height: number }) {
-  const pct = height / MAX_HEIGHT;
+  const pct = getVisualPct(height);
   const trunkH = 30 + pct * 70;
   const trunkW = 8 + pct * 14;
   const canopySize = 40 + pct * 120;
@@ -273,7 +291,7 @@ export default function TreeGrower({ onClose }: Props) {
 
   const handleWater = async () => {
     if (!user || watering || isExpired) return;
-    if (waterCount <= 0 || treeHeight >= MAX_HEIGHT) return;
+    if (waterCount <= 0) return;
 
     setWatering(true);
     await animateWater();
@@ -299,7 +317,22 @@ export default function TreeGrower({ onClose }: Props) {
   const glowOpacity = glowAnim.interpolate({ inputRange: [0, 1], outputRange: [0.15, 0.5] });
   const dropTranslate = dropAnim.interpolate({ inputRange: [0, 1], outputRange: [0, 100] });
   const dropOpacity = dropAnim.interpolate({ inputRange: [0, 0.5, 1], outputRange: [1, 1, 0] });
-  const pct = Math.min((treeHeight / MAX_HEIGHT) * 100, 100);
+  // Progress within current stage (every 5 levels = one stage cycle)
+  const stageSize = treeHeight < 15 ? 5 : treeHeight < 25 ? 10 : treeHeight < 40 ? 15 : treeHeight < 60 ? 20 : treeHeight < 85 ? 25 : 20;
+  const stageStart = (() => {
+    if (treeHeight < 3) return 0;
+    if (treeHeight < 6) return 3;
+    if (treeHeight < 10) return 6;
+    if (treeHeight < 15) return 10;
+    if (treeHeight < 25) return 15;
+    if (treeHeight < 40) return 25;
+    if (treeHeight < 60) return 40;
+    if (treeHeight < 85) return 60;
+    const legendBand = Math.floor((treeHeight - 85) / 20) * 20;
+    return 85 + legendBand;
+  })();
+  const stageEnd = stageStart + stageSize;
+  const pct = Math.min(((treeHeight - stageStart) / (stageEnd - stageStart)) * 100, 100);
   const freeLeft = Math.max(0, FREE_WATERS_PER_DAY - watersUsedToday);
   const bonus = Math.max(0, waterCount - freeLeft);
   const stageColor = getStageColor(treeHeight);
@@ -342,7 +375,7 @@ export default function TreeGrower({ onClose }: Props) {
             <View style={[s.statIconWrap, { backgroundColor: 'rgba(0,255,136,0.12)' }]}>
               <Leaf color={colors.success} size={16} />
             </View>
-            <Text style={s.statValue}>{treeHeight}/{MAX_HEIGHT}</Text>
+            <Text style={s.statValue}>{treeHeight}</Text>
             <Text style={s.statLabel}>HEIGHT</Text>
           </View>
           <View style={s.statBox}>
@@ -381,7 +414,7 @@ export default function TreeGrower({ onClose }: Props) {
             <Animated.View style={[s.progressFill, { width: `${pct}%`, backgroundColor: stageColor }]} />
           </View>
           <Text style={s.progressLabel}>
-            {treeHeight >= MAX_HEIGHT ? '🏆 Max Height Reached!' : `${MAX_HEIGHT - treeHeight} more to max`}
+            {`🌱 Level ${treeHeight} • ${stageEnd - treeHeight} waters to next stage`}
           </Text>
         </View>
 
@@ -403,15 +436,14 @@ export default function TreeGrower({ onClose }: Props) {
 
         {/* Actions */}
         <TouchableOpacity
-          style={[s.waterBtn, (waterCount <= 0 || treeHeight >= MAX_HEIGHT || watering) && s.btnDisabled]}
+          style={[s.waterBtn, (waterCount <= 0 || watering) && s.btnDisabled]}
           onPress={handleWater}
-          disabled={waterCount <= 0 || treeHeight >= MAX_HEIGHT || watering}
+          disabled={waterCount <= 0 || watering}
           activeOpacity={0.8}
         >
           <Droplets color={waterCount > 0 ? colors.bgDeep : colors.textMuted} size={20} />
           <Text style={[s.waterBtnText, waterCount <= 0 && { color: colors.textMuted }]}>
-            {watering ? 'Watering...' : treeHeight >= MAX_HEIGHT ? 'Max Height!'
-              : waterCount <= 0 ? 'No Water Left' : `Water Tree (+${(treeHeight + 1) * POINTS_PER_LEVEL} pts)`}
+            {watering ? 'Watering...' : waterCount <= 0 ? 'No Water Left' : `Water Tree (+${(treeHeight + 1) * POINTS_PER_LEVEL} pts)`}
           </Text>
         </TouchableOpacity>
 
