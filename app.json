@@ -14,7 +14,7 @@
     "android": {
       "package": "com.oek04.dilmeda",
       "adaptiveIcon": {
-        "foregroundImage": "./assets/images/icon.png",
+        "foregroundImage": "./assets/images/image.png",
         "backgroundColor": "#0D0618"
       }
     },

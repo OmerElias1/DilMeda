@@ -27,14 +27,38 @@ export default function HomeScreen() {
   const timeLeft = useTimeLeft(activeTournament?.end_time);
   const [adModalOpen, setAdModalOpen] = useState(false);
   const [topPlayers, setTopPlayers] = useState<{ username: string; points: number }[]>([]);
+  const [adWatchedToday, setAdWatchedToday] = useState(false);
   const isExpired = timeLeft.expired;
+
+  const checkAdWatchStatus = useCallback(async () => {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return;
+      
+      const todayStr = new Date().toISOString().split('T')[0];
+      const { count, error } = await supabase
+        .from('ad_views')
+        .select('*', { count: 'exact', head: true })
+        .eq('user_id', session.user.id)
+        .gte('viewed_at', `${todayStr}T00:00:00.000Z`);
+
+      if (error) {
+        console.log('Error checking ad watch status:', error);
+      } else {
+        setAdWatchedToday((count ?? 0) > 0);
+      }
+    } catch (err) {
+      console.log('Failed to check ad watch status:', err);
+    }
+  }, []);
 
   useFocusEffect(
     useCallback(() => {
       refetch();
       refreshPoints();
       refreshTournaments();
-    }, [refetch, refreshPoints, refreshTournaments])
+      checkAdWatchStatus();
+    }, [refetch, refreshPoints, refreshTournaments, checkAdWatchStatus])
   );
 
   // Fetch top competitors for live engagement feed
@@ -82,10 +106,10 @@ export default function HomeScreen() {
   };
 
   const getRankTier = (pts: number) => {
-    if (pts < 100) return { name: 'BRONZE LEAGUE', color: '#CD7F32', next: 100 };
-    if (pts < 300) return { name: 'SILVER LEAGUE', color: '#C0C0C0', next: 300 };
-    if (pts < 1000) return { name: 'GOLD LEAGUE', color: colors.gold, next: 1000 };
-    return { name: 'DIAMOND LEAGUE', color: colors.neon, next: 99999 };
+    if (pts < 100) return { key: 'bronzeLeague', name: 'BRONZE LEAGUE', color: '#CD7F32', next: 100 };
+    if (pts < 300) return { key: 'silverLeague', name: 'SILVER LEAGUE', color: '#C0C0C0', next: 300 };
+    if (pts < 1000) return { key: 'goldLeague', name: 'GOLD LEAGUE', color: colors.gold, next: 1000 };
+    return { key: 'diamondLeague', name: 'DIAMOND LEAGUE', color: colors.neon, next: 99999 };
   };
 
   const userPts = profile?.points ?? 0;
@@ -100,10 +124,10 @@ export default function HomeScreen() {
 
   // Daily Objectives status checks
   const objectives = [
-    { id: 1, title: 'Earn Tournament XP', desc: 'Secure at least 1 point in any arena', completed: userPts > 0 },
-    { id: 2, title: 'Recharge Energy', desc: 'Watch an ad at the Energy Station (+5 pts)', completed: false }, // complete mock
-    { id: 3, title: 'Reach Level 2+', desc: 'Accumulate 100 total points', completed: userPts >= 100 },
-    { id: 4, title: 'Tournament Contender', desc: 'Join or register for a live championship', completed: activeTournament !== null }
+    { id: 1, title: t('objectiveEarnXPTitle'), desc: t('objectiveEarnXPDesc'), completed: userPts > 0 },
+    { id: 2, title: t('objectiveRechargeEnergyTitle'), desc: t('objectiveRechargeEnergyDesc'), completed: adWatchedToday },
+    { id: 3, title: t('objectiveReachLevelTitle'), desc: t('objectiveReachLevelDesc'), completed: userPts >= 100 },
+    { id: 4, title: t('objectiveContenderTitle'), desc: t('objectiveContenderDesc'), completed: activeTournament !== null }
   ];
 
   return (
@@ -134,13 +158,13 @@ export default function HomeScreen() {
                 <GreetingIcon color={greet.color} size={13} style={styles.greetIcon} />
                 <Text style={styles.greeting}>{greet.text},</Text>
               </View>
-              <Text style={styles.username}>{profile?.username ?? 'Champion'}</Text>
+              <Text style={styles.username}>{profile?.username ?? t('championPlaceholder')}</Text>
             </View>
           </View>
           
           <View style={styles.headerRight}>
             <View style={styles.levelBadge}>
-              <Text style={styles.levelLabel}>LVL</Text>
+              <Text style={styles.levelLabel}>{t('lvlLabel')}</Text>
               <Text style={styles.levelValue}>{userLevel}</Text>
             </View>
             <View style={styles.pointsBadge}>
@@ -172,7 +196,7 @@ export default function HomeScreen() {
               
               <View style={[styles.tierPill, { borderColor: rankTier.color + '60', backgroundColor: rankTier.color + '15' }]}>
                 <Award color={rankTier.color} size={12} />
-                <Text style={[styles.tierPillText, { color: rankTier.color }]}>{rankTier.name}</Text>
+                <Text style={[styles.tierPillText, { color: rankTier.color }]}>{t(rankTier.key as any)}</Text>
               </View>
             </View>
             <View style={[styles.scoreIcon, { borderColor: rankTier.color + '50' }]}>
@@ -182,7 +206,7 @@ export default function HomeScreen() {
 
           {/* XP Progress Bar */}
           <View style={styles.xpLabelRow}>
-            <Text style={styles.xpProgressText}>LEVEL {userLevel} PROGRESS</Text>
+            <Text style={styles.xpProgressText}>{t('levelProgress').replace('{level}', String(userLevel))}</Text>
             <Text style={styles.xpProgressVal}>{currentLevelXp} / 100 XP</Text>
           </View>
           <View style={styles.scoreBar}>
@@ -215,28 +239,28 @@ export default function HomeScreen() {
             <View style={styles.featuredBadgeRow}>
               <View style={styles.featuredBadge}>
                 <Flame color="#FF3E6C" size={10} fill="#FF3E6C" />
-                <Text style={styles.featuredBadgeText}>FEATURED GAME</Text>
+                <Text style={styles.featuredBadgeText}>{t('featuredGame')}</Text>
               </View>
-              <Text style={styles.featuredMultiplier}>+50% XP BONUS</Text>
+              <Text style={styles.featuredMultiplier}>{t('xpBonus')}</Text>
             </View>
 
-            <Text style={styles.heroTitle}>Laser Deflector</Text>
+            <Text style={styles.heroTitle}>{t('gameDeflectorTitle')}</Text>
             <Text style={styles.heroDescription}>
-              Bounce high-voltage laser cores using a neon shield! Smooth 60fps action.
+              {t('gameDeflectorSub')}
             </Text>
 
             <View style={styles.heroFooter}>
               <View style={styles.heroStats}>
                 <View style={styles.heroStatTag}>
-                  <Text style={styles.heroStatTagText}>60 FPS READY</Text>
+                  <Text style={styles.heroStatTagText}>{t('fpsReady')}</Text>
                 </View>
                 <View style={[styles.heroStatTag, { backgroundColor: 'rgba(0, 255, 204, 0.12)' }]}>
-                  <Text style={[styles.heroStatTagText, { color: '#00FFCC' }]}>ARCADE</Text>
+                  <Text style={[styles.heroStatTagText, { color: '#00FFCC' }]}>{t('gameDeflectorTag')}</Text>
                 </View>
               </View>
 
               <View style={styles.heroPlayButton}>
-                <Text style={styles.heroPlayButtonText}>PLAY NOW</Text>
+                <Text style={styles.heroPlayButtonText}>{t('playNow')}</Text>
                 <Play color="#000" size={12} fill="#000" />
               </View>
             </View>
@@ -288,7 +312,7 @@ export default function HomeScreen() {
         <View style={styles.sectionHeader}>
           <Trophy color={colors.gold} size={15} fill={colors.gold} />
           <Text style={styles.sectionTitle}>
-            {activeTournament ? 'ACTIVE BATTLE LOBBY' : 'CHAMPIONSHIP STANDINGS'}
+            {activeTournament ? t('activeBattleLobby') : t('championshipStandings')}
           </Text>
         </View>
 
@@ -328,7 +352,7 @@ export default function HomeScreen() {
               <View style={styles.challengersList}>
                 <View style={styles.challengerListHeader}>
                   <TrendingUp color="#8F7EA6" size={11} />
-                  <Text style={styles.challengerListTitle}>TOP LOBBY CONTENDERS</Text>
+                  <Text style={styles.challengerListTitle}>{t('topLobbyContenders')}</Text>
                 </View>
                 {topPlayers.map((player, idx) => (
                   <View key={idx} style={styles.challengerRow}>
@@ -351,16 +375,16 @@ export default function HomeScreen() {
             {/* Show Global Standings as dynamic preview */}
             <View style={styles.noTHeader}>
               <ShieldAlert color="#FFCC00" size={18} />
-              <Text style={styles.noTournamentText}>No Active Battle Lobby Joined</Text>
+              <Text style={styles.noTournamentText}>{t('noActiveLobby')}</Text>
             </View>
             
             <Text style={styles.noTournamentSub}>
-              Go to the Tournaments tab to join a lobby and start competing!
+              {t('gamesTabPrompt')}
             </Text>
 
             {topPlayers.length > 0 && (
               <View style={[styles.challengersList, { marginTop: 12, borderTopWidth: 1, borderTopColor: '#3D1F6E40', paddingTop: 12 }]}>
-                <Text style={styles.challengerListTitle}>CURRENT GLOBAL LEADERS</Text>
+                <Text style={styles.challengerListTitle}>{t('leaderboardStandings')}</Text>
                 {topPlayers.map((player, idx) => (
                   <View key={idx} style={[styles.challengerRow, { backgroundColor: 'rgba(255,255,255,0.01)' }]}>
                     <View style={styles.challengerLeft}>
@@ -380,7 +404,7 @@ export default function HomeScreen() {
               activeOpacity={0.8}
               onPress={() => router.navigate('/games')}
             >
-              <Text style={styles.lobbyRegisterButtonText}>EXPLORE LIVE LOBBIES</Text>
+              <Text style={styles.lobbyRegisterButtonText}>{t('exploreLiveLobbies')}</Text>
               <ArrowRight color="#000" size={13} />
             </TouchableOpacity>
           </View>
@@ -431,7 +455,7 @@ export default function HomeScreen() {
               <X color={colors.textSecondary} size={22} />
             </TouchableOpacity>
           </View>
-          <AdPlayer onClose={() => setAdModalOpen(false)} />
+          <AdPlayer onClose={() => setAdModalOpen(false)} onAdWatched={() => setAdWatchedToday(true)} />
         </View>
       </Modal>
     </SafeAreaView>
