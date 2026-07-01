@@ -14,6 +14,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useLanguage } from '@/hooks/useLanguage';
 import { colors, radius, shadow } from '@/constants/theme';
 import { LinearGradient } from 'expo-linear-gradient';
+import { BlurView } from 'expo-blur';
 
 const { width } = Dimensions.get('window');
 const BAR_WIDTH = width - 40;
@@ -51,8 +52,10 @@ function Blob({ x }: { x: Animated.Value }) {
     >
       <Animated.View style={[styles.blobGlow,  { transform: [{ scale: pulse }] }]} />
       <LinearGradient
-        colors={['rgba(255, 215, 0, 0.25)', 'rgba(0, 255, 204, 0.15)']}
+        colors={['rgba(0, 255, 204, 0.35)', 'rgba(255, 215, 0, 0.2)']}// liquid teal/gold mercury gradient
         style={styles.blobGrad}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
       >
         <Animated.View style={[styles.blob, { transform: [{ scale: pulse }] }]} />
       </LinearGradient>
@@ -171,6 +174,19 @@ function LiquidTabBar({ state, navigation }: any) {
   return (
     <View style={styles.barOuter} pointerEvents="box-none">
       <View style={styles.pill} {...panResponder.panHandlers}>
+        {/* Frosted Glass Base Layer */}
+        <BlurView
+          intensity={Platform.OS === 'ios' ? 40 : 70}
+          tint="dark"
+          style={StyleSheet.absoluteFill}
+        />
+        <LinearGradient
+          colors={['rgba(24, 10, 45, 0.35)', 'rgba(10, 2, 22, 0.65)']}
+          style={StyleSheet.absoluteFill}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 0, y: 1 }}
+        />
+
         {/* Shimmer top line */}
         <View style={styles.shimmer} pointerEvents="none" />
 
@@ -238,15 +254,15 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     borderRadius: 36,
-    backgroundColor: '#110524F2',
+    backgroundColor: 'rgba(15, 6, 27, 0.25)', // Semi-transparent base for glass
     borderWidth: 1.5,
-    borderColor: 'rgba(255, 215, 0, 0.25)',
+    borderColor: 'rgba(255, 215, 0, 0.18)', // Glass edge glow border
     overflow: 'hidden',
     shadowColor: colors.gold,
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.45,
-    shadowRadius: 28,
-    elevation: 28,
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.35,
+    shadowRadius: 24,
+    elevation: 20,
   },
   shimmer: {
     position: 'absolute',
@@ -254,7 +270,7 @@ const styles = StyleSheet.create({
     left: 24,
     right: 24,
     height: 1.5,
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    backgroundColor: 'rgba(255, 255, 255, 0.15)',
     borderRadius: 1,
   },
 
@@ -270,17 +286,17 @@ const styles = StyleSheet.create({
   },
   blobGlow: {
     position: 'absolute',
-    width: 58,
-    height: 58,
-    borderRadius: 29,
-    backgroundColor: 'rgba(0, 255, 204, 0.12)',
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    backgroundColor: 'rgba(0, 255, 204, 0.14)', // vibrant neon glow behind the glass
   },
   blobGrad: {
     width: 46,
     height: 46,
     borderRadius: 23,
     borderWidth: 1.5,
-    borderColor: 'rgba(255, 215, 0, 0.65)',
+    borderColor: 'rgba(255, 215, 0, 0.45)',
     alignItems: 'center',
     justifyContent: 'center',
     overflow: 'hidden',
@@ -289,7 +305,7 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: 'rgba(255, 215, 0, 0.08)',
+    backgroundColor: 'rgba(255, 215, 0, 0.05)',
   },
 
   /* ── Tab button ── */

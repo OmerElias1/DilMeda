@@ -1,15 +1,20 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
-  Modal, Dimensions
+  Modal, Dimensions, Platform
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Eye, Zap, Star, TrendingUp, Gamepad2, Trophy, Clock, ShieldAlert, Sparkles, Award, X } from 'lucide-react-native';
+import {
+  Eye, Zap, Star, TrendingUp, Gamepad2, Trophy, Clock,
+  ShieldAlert, Sparkles, Award, X, Sunrise, Sun, Moon,
+  CheckCircle2, Circle, Flame, ArrowRight, Play
+} from 'lucide-react-native';
 import { useAuth } from '@/hooks/useAuth';
 import { useTournaments, useTimeLeft } from '@/hooks/useTournaments';
-import { useFocusEffect } from 'expo-router';
+import { useFocusEffect, router } from 'expo-router';
 import { useLanguage } from '@/hooks/useLanguage';
+import { supabase } from '@/lib/supabase';
 import CountdownBanner from '@/components/CountdownBanner';
 import ParticleBackground from '@/components/ParticleBackground';
 import AdPlayer from '@/components/AdPlayer';
@@ -21,6 +26,7 @@ export default function HomeScreen() {
   const { t } = useLanguage();
   const timeLeft = useTimeLeft(activeTournament?.end_time);
   const [adModalOpen, setAdModalOpen] = useState(false);
+  const [topPlayers, setTopPlayers] = useState<{ username: string; points: number }[]>([]);
   const isExpired = timeLeft.expired;
 
   useFocusEffect(
@@ -31,84 +37,215 @@ export default function HomeScreen() {
     }, [refetch, refreshPoints, refreshTournaments])
   );
 
-  const greeting = () => {
+  // Fetch top competitors for live engagement feed
+  useEffect(() => {
+    async function getStandings() {
+      try {
+        if (activeTournament) {
+          const { data } = await supabase
+            .from('tournament_points')
+            .select('points, profiles(username)')
+            .eq('tournament_id', activeTournament.id)
+            .order('points', { ascending: false })
+            .limit(3);
+          if (data) {
+            setTopPlayers(data.map((d: any) => ({
+              username: d.profiles?.username ?? 'Champion',
+              points: d.points
+            })));
+          }
+        } else {
+          const { data } = await supabase
+            .from('profiles')
+            .select('username, points')
+            .order('points', { ascending: false })
+            .limit(3);
+          if (data) {
+            setTopPlayers(data.map((d: any) => ({
+              username: d.username ?? 'Champion',
+              points: d.points
+            })));
+          }
+        }
+      } catch (err) {
+        console.log('Error fetching standings:', err);
+      }
+    }
+    getStandings();
+  }, [activeTournament, profile?.points]);
+
+  const getGreetingConfig = () => {
     const h = new Date().getHours();
-    if (h < 12) return t('goodMorning');
-    if (h < 17) return t('goodAfternoon');
-    return t('goodEvening');
+    if (h < 12) return { text: t('goodMorning'), icon: Sunrise, color: '#FF9F43' };
+    if (h < 17) return { text: t('goodAfternoon'), icon: Sun, color: '#FFCC00' };
+    return { text: t('goodEvening'), icon: Moon, color: '#A29BFE' };
   };
 
   const getRankTier = (pts: number) => {
-    if (pts < 100) return { name: 'BRONZE LEAGUE', color: '#CD7F32' };
-    if (pts < 300) return { name: 'SILVER LEAGUE', color: '#C0C0C0' };
-    if (pts < 1000) return { name: 'GOLD LEAGUE', color: colors.gold };
-    return { name: 'DIAMOND LEAGUE', color: colors.neon };
+    if (pts < 100) return { name: 'BRONZE LEAGUE', color: '#CD7F32', next: 100 };
+    if (pts < 300) return { name: 'SILVER LEAGUE', color: '#C0C0C0', next: 300 };
+    if (pts < 1000) return { name: 'GOLD LEAGUE', color: colors.gold, next: 1000 };
+    return { name: 'DIAMOND LEAGUE', color: colors.neon, next: 99999 };
   };
 
   const userPts = profile?.points ?? 0;
   const rankTier = getRankTier(userPts);
+  const progressToNext = rankTier.next === 99999 ? 100 : ((userPts % rankTier.next) / rankTier.next) * 100;
+  const greet = getGreetingConfig();
+  const GreetingIcon = greet.icon;
+
+  // Level System (100 Points per Level)
+  const userLevel = Math.floor(userPts / 100) + 1;
+  const currentLevelXp = userPts % 100;
+
+  // Daily Objectives status checks
+  const objectives = [
+    { id: 1, title: 'Earn Tournament XP', desc: 'Secure at least 1 point in any arena', completed: userPts > 0 },
+    { id: 2, title: 'Recharge Energy', desc: 'Watch an ad at the Energy Station (+5 pts)', completed: false }, // complete mock
+    { id: 3, title: 'Reach Level 2+', desc: 'Accumulate 100 total points', completed: userPts >= 100 },
+    { id: 4, title: 'Tournament Contender', desc: 'Join or register for a live championship', completed: activeTournament !== null }
+  ];
 
   return (
     <SafeAreaView style={styles.root}>
       <ParticleBackground />
       <CountdownBanner />
+      
       <ScrollView style={styles.scroll} contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-        {/* Profile Gamer Header */}
+        
+        {/* GAMER PROFILE HEADER */}
         <View style={styles.header}>
           <View style={styles.avatarRow}>
-            <View style={[styles.avatarCircle, { borderColor: rankTier.color }]}>
-              <Text style={styles.avatarText}>
-                {(profile?.username ?? 'C').charAt(0).toUpperCase()}
-              </Text>
-            </View>
+            <LinearGradient
+              colors={[rankTier.color, '#1B0D2D']}
+              style={styles.avatarRing}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+            >
+              <View style={styles.avatarCircle}>
+                <Text style={styles.avatarText}>
+                  {(profile?.username ?? 'C').charAt(0).toUpperCase()}
+                </Text>
+              </View>
+            </LinearGradient>
+            
             <View>
-              <Text style={styles.greeting}>{greeting()},</Text>
+              <View style={styles.greetingRow}>
+                <GreetingIcon color={greet.color} size={13} style={styles.greetIcon} />
+                <Text style={styles.greeting}>{greet.text},</Text>
+              </View>
               <Text style={styles.username}>{profile?.username ?? 'Champion'}</Text>
             </View>
           </View>
-          <View style={styles.pointsBadge}>
-            <Star color={colors.gold} size={15} fill={colors.gold} />
-            <Text style={styles.pointsText}>{userPts}</Text>
+          
+          <View style={styles.headerRight}>
+            <View style={styles.levelBadge}>
+              <Text style={styles.levelLabel}>LVL</Text>
+              <Text style={styles.levelValue}>{userLevel}</Text>
+            </View>
+            <View style={styles.pointsBadge}>
+              <Star color={colors.gold} size={14} fill={colors.gold} />
+              <Text style={styles.pointsText}>{userPts}</Text>
+            </View>
           </View>
         </View>
 
-        {/* Battle Pass / Experience Tracker Card */}
+        {/* BATTLE PASS STATUS BOARD */}
         <LinearGradient
-          colors={['#270C4E', '#110524']}
+          colors={['#200D3E', '#0E041E']}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
           style={styles.scoreCard}
         >
-          {/* Top border neon line */}
-          <View style={[styles.cardAccentLine, { backgroundColor: rankTier.color }]} />
+          {/* Top border glowing highlight */}
+          <LinearGradient
+            colors={[rankTier.color, 'rgba(0, 255, 204, 0.4)']}
+            style={styles.cardAccentLine}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 0 }}
+          />
           
           <View style={styles.scoreCardInner}>
-            <View>
+            <View style={{ flex: 1 }}>
               <Text style={styles.scoreLabel}>{t('tournamentPoints')}</Text>
               <Text style={styles.scoreValue}>{userPts}</Text>
               
-              <View style={[styles.tierPill, { borderColor: rankTier.color + '60', backgroundColor: rankTier.color + '18' }]}>
-                <Award color={rankTier.color} size={13} />
+              <View style={[styles.tierPill, { borderColor: rankTier.color + '60', backgroundColor: rankTier.color + '15' }]}>
+                <Award color={rankTier.color} size={12} />
                 <Text style={[styles.tierPillText, { color: rankTier.color }]}>{rankTier.name}</Text>
               </View>
             </View>
             <View style={[styles.scoreIcon, { borderColor: rankTier.color + '50' }]}>
-              <Sparkles color={colors.gold} size={28} />
+              <Sparkles color={colors.gold} size={26} />
             </View>
           </View>
 
+          {/* XP Progress Bar */}
           <View style={styles.xpLabelRow}>
-            <Text style={styles.xpProgressText}>{t('xpProgress')}</Text>
-            <Text style={styles.xpProgressVal}>{userPts % 100} / 100</Text>
+            <Text style={styles.xpProgressText}>LEVEL {userLevel} PROGRESS</Text>
+            <Text style={styles.xpProgressVal}>{currentLevelXp} / 100 XP</Text>
           </View>
           <View style={styles.scoreBar}>
-            <View style={[styles.scoreBarFill, { width: `${Math.max(8, userPts % 100)}%`, backgroundColor: rankTier.color }]} />
+            <LinearGradient
+              colors={[rankTier.color, '#00FFCC']}
+              style={[styles.scoreBarFill, { width: `${Math.max(6, currentLevelXp)}%` }]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 0 }}
+            />
           </View>
         </LinearGradient>
 
-        {/* Watch Ad - Energy Station */}
+        {/* FEATURED ARENA HERO BANNER */}
+        <TouchableOpacity
+          style={styles.featuredHeroCard}
+          activeOpacity={0.9}
+          onPress={() => router.navigate('/games')}
+        >
+          <LinearGradient
+            colors={['#4E0C3E', '#1A0416', '#09010C']}
+            style={StyleSheet.absoluteFill}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+          />
+          
+          {/* Neon decorative overlays */}
+          <View style={styles.heroDecorCircle} />
+          
+          <View style={styles.featuredHeroContent}>
+            <View style={styles.featuredBadgeRow}>
+              <View style={styles.featuredBadge}>
+                <Flame color="#FF3E6C" size={10} fill="#FF3E6C" />
+                <Text style={styles.featuredBadgeText}>FEATURED GAME</Text>
+              </View>
+              <Text style={styles.featuredMultiplier}>+50% XP BONUS</Text>
+            </View>
+
+            <Text style={styles.heroTitle}>Laser Deflector</Text>
+            <Text style={styles.heroDescription}>
+              Bounce high-voltage laser cores using a neon shield! Smooth 60fps action.
+            </Text>
+
+            <View style={styles.heroFooter}>
+              <View style={styles.heroStats}>
+                <View style={styles.heroStatTag}>
+                  <Text style={styles.heroStatTagText}>60 FPS READY</Text>
+                </View>
+                <View style={[styles.heroStatTag, { backgroundColor: 'rgba(0, 255, 204, 0.12)' }]}>
+                  <Text style={[styles.heroStatTagText, { color: '#00FFCC' }]}>ARCADE</Text>
+                </View>
+              </View>
+
+              <View style={styles.heroPlayButton}>
+                <Text style={styles.heroPlayButtonText}>PLAY NOW</Text>
+                <Play color="#000" size={12} fill="#000" />
+              </View>
+            </View>
+          </View>
+        </TouchableOpacity>
+
+        {/* ENERGY STATION (WATCH AD) */}
         <View style={styles.sectionHeader}>
-          <Zap color={colors.neon} size={16} fill={colors.neon} />
+          <Zap color={colors.neon} size={15} fill={colors.neon} />
           <Text style={styles.sectionTitle}>{t('energyStation')}</Text>
           {isExpired && <Text style={styles.lockedTag}>{t('locked')}</Text>}
         </View>
@@ -119,12 +256,17 @@ export default function HomeScreen() {
           activeOpacity={0.85}
         >
           <LinearGradient
-            colors={isExpired ? ['#1A1A2E', '#1A1A2E'] : ['#1E3B33', '#110524']}
+            colors={isExpired ? ['#1B1B32', '#1B1B32'] : ['#0C2521', '#06010D']}
             style={styles.adCardGradient}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
           >
+            {/* Edge neon glow indicator */}
+            <View style={[styles.adEdgeIndicator, { backgroundColor: isExpired ? '#8F7EA6' : colors.neon }]} />
+
             <View style={styles.adCardContent}>
-              <View style={[styles.adIconWrap, { borderColor: isExpired ? colors.textMuted : colors.neon }]}>
-                <Eye color={isExpired ? colors.textMuted : colors.neon} size={26} />
+              <View style={[styles.adIconWrap, { borderColor: isExpired ? colors.textMuted : 'rgba(0, 255, 204, 0.4)' }]}>
+                <Eye color={isExpired ? colors.textMuted : colors.neon} size={23} />
                 <View style={[styles.pulseDot, { backgroundColor: isExpired ? colors.textMuted : colors.neon }]} />
               </View>
               <View style={styles.adCardText}>
@@ -142,17 +284,16 @@ export default function HomeScreen() {
           </LinearGradient>
         </TouchableOpacity>
 
-        {/* Active Arena / Mission Details */}
+        {/* ACTIVE TOURNAMENT OR MINI-LEADERBOARD DISPLAY */}
         <View style={styles.sectionHeader}>
-          <Trophy color={colors.gold} size={16} fill={colors.gold} />
+          <Trophy color={colors.gold} size={15} fill={colors.gold} />
           <Text style={styles.sectionTitle}>
-            {activeTournament ? t('activeLobby') : t('availableLobbies')}
+            {activeTournament ? 'ACTIVE BATTLE LOBBY' : 'CHAMPIONSHIP STANDINGS'}
           </Text>
         </View>
 
         {activeTournament ? (
           <View style={styles.activeTCard}>
-            <View style={styles.activeTCardGlow} />
             <View style={styles.activeTRow}>
               <View style={styles.lobbyMissionTitleRow}>
                 <View style={styles.liveIndicator}>
@@ -181,40 +322,102 @@ export default function HomeScreen() {
                 </Text>
               </View>
             </View>
+
+            {/* Live Challengers Standings inside Card */}
+            {topPlayers.length > 0 && (
+              <View style={styles.challengersList}>
+                <View style={styles.challengerListHeader}>
+                  <TrendingUp color="#8F7EA6" size={11} />
+                  <Text style={styles.challengerListTitle}>TOP LOBBY CONTENDERS</Text>
+                </View>
+                {topPlayers.map((player, idx) => (
+                  <View key={idx} style={styles.challengerRow}>
+                    <View style={styles.challengerLeft}>
+                      <Text style={[styles.challengerRankText, idx === 0 && { color: colors.gold }, idx === 1 && { color: '#C0C0C0' }]}>
+                        #{idx + 1}
+                      </Text>
+                      <Text style={styles.challengerName} numberOfLines={1}>
+                        {player.username}
+                      </Text>
+                    </View>
+                    <Text style={styles.challengerScore}>{player.points} pts</Text>
+                  </View>
+                ))}
+              </View>
+            )}
           </View>
         ) : (
           <View style={styles.noTournamentCard}>
-            <ShieldAlert color={colors.textMuted} size={32} />
-            <Text style={styles.noTournamentText}>{t('noActiveLobby')}</Text>
+            {/* Show Global Standings as dynamic preview */}
+            <View style={styles.noTHeader}>
+              <ShieldAlert color="#FFCC00" size={18} />
+              <Text style={styles.noTournamentText}>No Active Battle Lobby Joined</Text>
+            </View>
+            
             <Text style={styles.noTournamentSub}>
-              {t('gamesTabPrompt')}
+              Go to the Tournaments tab to join a lobby and start competing!
             </Text>
+
+            {topPlayers.length > 0 && (
+              <View style={[styles.challengersList, { marginTop: 12, borderTopWidth: 1, borderTopColor: '#3D1F6E40', paddingTop: 12 }]}>
+                <Text style={styles.challengerListTitle}>CURRENT GLOBAL LEADERS</Text>
+                {topPlayers.map((player, idx) => (
+                  <View key={idx} style={[styles.challengerRow, { backgroundColor: 'rgba(255,255,255,0.01)' }]}>
+                    <View style={styles.challengerLeft}>
+                      <Text style={[styles.challengerRankText, idx === 0 && { color: colors.gold }, idx === 1 && { color: '#C0C0C0' }]}>
+                        #{idx + 1}
+                      </Text>
+                      <Text style={styles.challengerName}>{player.username}</Text>
+                    </View>
+                    <Text style={styles.challengerScore}>{player.points} pts</Text>
+                  </View>
+                ))}
+              </View>
+            )}
+            
+            <TouchableOpacity
+              style={styles.lobbyRegisterButton}
+              activeOpacity={0.8}
+              onPress={() => router.navigate('/games')}
+            >
+              <Text style={styles.lobbyRegisterButtonText}>EXPLORE LIVE LOBBIES</Text>
+              <ArrowRight color="#000" size={13} />
+            </TouchableOpacity>
           </View>
         )}
 
-        {/* Tutorial Missions / How to Earn */}
+        {/* TACTICAL OBJECTIVES (DAILY QUESTS) */}
         <View style={styles.sectionHeader}>
-          <Gamepad2 color={colors.gold} size={16} />
+          <Gamepad2 color={colors.gold} size={15} />
           <Text style={styles.sectionTitle}>{t('tacticalObjectives')}</Text>
         </View>
-        <View style={styles.howGrid}>
-          {[
-            { icon: Gamepad2, title: t('playGames'), sub: t('dodgeClickMatch'), color: colors.neon },
-            { icon: Eye, title: t('watchAds'), sub: t('rechargePointsAnytime'), color: '#FF9F43' },
-            { icon: Zap, title: t('spinWheel'), sub: t('unlockDailyLucky'), color: colors.gold },
-            { icon: Trophy, title: t('rankHigh'), sub: t('secureTop3'), color: '#FF5E7E' },
-          ].map((item, i) => (
-            <View key={i} style={styles.howCard}>
-              <View style={[styles.howIconWrap, { borderColor: item.color + '40', backgroundColor: item.color + '10' }]}>
-                <item.icon color={item.color} size={22} fill={item.color === colors.gold ? colors.gold : 'transparent'} />
+
+        <View style={styles.objectivesList}>
+          {objectives.map((obj) => (
+            <View key={obj.id} style={[styles.objectiveCard, obj.completed && styles.objectiveCompleted]}>
+              <View style={styles.objCheckContainer}>
+                {obj.completed ? (
+                  <CheckCircle2 color="#00FFCC" size={18} fill="rgba(0, 255, 204, 0.1)" />
+                ) : (
+                  <Circle color="#8F7EA6" size={18} />
+                )}
               </View>
-              <Text style={styles.howTitle}>{item.title}</Text>
-              <Text style={styles.howSub}>{item.sub}</Text>
+              <View style={styles.objTextContainer}>
+                <Text style={[styles.objTitle, obj.completed && styles.objTitleStrikethrough]}>
+                  {obj.title}
+                </Text>
+                <Text style={styles.objDesc}>{obj.desc}</Text>
+              </View>
+              <View style={[styles.objXpBadge, obj.completed && { borderColor: 'rgba(0,255,204,0.3)' }]}>
+                <Text style={[styles.objXpText, obj.completed && { color: '#00FFCC' }]}>DONE</Text>
+              </View>
             </View>
           ))}
         </View>
+        
       </ScrollView>
 
+      {/* WATCH AD MODAL */}
       <Modal
         visible={adModalOpen}
         animationType="slide"
@@ -246,61 +449,112 @@ const styles = StyleSheet.create({
     marginBottom: spacing.lg, paddingTop: spacing.sm,
   },
   avatarRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  avatarRing: {
+    width: 50, height: 50, borderRadius: 25,
+    padding: 2, alignItems: 'center', justifyContent: 'center',
+  },
   avatarCircle: {
-    width: 46, height: 46, borderRadius: 23,
+    width: '100%', height: '100%', borderRadius: 23,
     backgroundColor: colors.bgDeep, alignItems: 'center', justifyContent: 'center',
-    borderWidth: 2,
-    shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 5,
   },
-  avatarText: { color: colors.textPrimary, fontSize: 20, fontWeight: '900' },
-  greeting: { color: colors.textSecondary, fontSize: 12, fontWeight: '600', opacity: 0.7 },
-  username: { color: colors.textPrimary, fontSize: 18, fontWeight: '900', letterSpacing: 0.5 },
+  avatarText: { color: colors.textPrimary, fontSize: 18, fontWeight: '900' },
+  greetingRow: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+  greetIcon: { transform: [{ translateY: -1 }] },
+  greeting: { color: colors.textSecondary, fontSize: 11, fontWeight: '600', opacity: 0.8 },
+  username: { color: colors.textPrimary, fontSize: 17, fontWeight: '900', letterSpacing: 0.3 },
+  
+  headerRight: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  levelBadge: {
+    backgroundColor: '#00FFCC12', borderWidth: 1, borderColor: '#00FFCC25',
+    paddingHorizontal: 8, paddingVertical: 4, borderRadius: 12, alignItems: 'center',
+  },
+  levelLabel: { color: '#00FFCC', fontSize: 8, fontWeight: '900', letterSpacing: 0.5 },
+  levelValue: { color: '#00FFCC', fontSize: 11, fontWeight: '900', marginTop: -2 },
+  
   pointsBadge: {
-    flexDirection: 'row', alignItems: 'center', gap: 6,
+    flexDirection: 'row', alignItems: 'center', gap: 5,
     backgroundColor: '#23104080', borderRadius: radius.full,
-    paddingHorizontal: 12, paddingVertical: 6,
-    borderWidth: 1.5, borderColor: 'rgba(255,215,0,0.4)',
-    shadowColor: colors.gold, shadowOffset: { width: 0, height: 0 }, shadowOpacity: 0.3, shadowRadius: 8,
-    elevation: 5,
+    paddingHorizontal: 10, paddingVertical: 5,
+    borderWidth: 1.5, borderColor: 'rgba(255,215,0,0.3)',
+    shadowColor: colors.gold, shadowOffset: { width: 0, height: 0 }, shadowOpacity: 0.2, shadowRadius: 6,
+    elevation: 4,
   },
-  pointsText: { color: colors.gold, fontSize: 14, fontWeight: '900', letterSpacing: 0.2 },
+  pointsText: { color: colors.gold, fontSize: 12, fontWeight: '900' },
   
   // Score Card (Battle Pass experience board)
   scoreCard: {
     borderRadius: radius.lg, padding: spacing.lg, marginBottom: spacing.lg,
-    borderWidth: 1, borderColor: '#3D1F6E80',
+    borderWidth: 1, borderColor: '#3D1F6E70',
     position: 'relative', overflow: 'hidden',
-    shadowColor: '#000', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.4, shadowRadius: 16,
-    elevation: 8,
+    shadowColor: '#000', shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.35, shadowRadius: 12,
+    elevation: 6,
   },
   cardAccentLine: {
-    position: 'absolute', top: 0, left: 0, right: 0, height: 3,
+    position: 'absolute', top: 0, left: 0, right: 0, height: 2.5,
   },
   scoreCardInner: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: spacing.md },
-  scoreLabel: { color: colors.textSecondary, fontSize: 11, fontWeight: '800', letterSpacing: 1, textTransform: 'uppercase' },
-  scoreValue: { color: colors.textPrimary, fontSize: 44, fontWeight: '900', lineHeight: 48, letterSpacing: -0.5 },
+  scoreLabel: { color: colors.textSecondary, fontSize: 10, fontWeight: '800', letterSpacing: 1, textTransform: 'uppercase' },
+  scoreValue: { color: colors.textPrimary, fontSize: 38, fontWeight: '900', lineHeight: 42, letterSpacing: -0.5 },
   tierPill: {
     flexDirection: 'row', alignItems: 'center', gap: 4,
     borderWidth: 1, borderRadius: radius.full,
     paddingHorizontal: 8, paddingVertical: 2,
     marginTop: 6, alignSelf: 'flex-start',
   },
-  tierPillText: { fontSize: 9, fontWeight: '900', letterSpacing: 0.8 },
+  tierPillText: { fontSize: 8, fontWeight: '900', letterSpacing: 0.8 },
   scoreIcon: {
-    width: 54, height: 54, borderRadius: 27, backgroundColor: '#1C0E32',
-    alignItems: 'center', justifyContent: 'center', borderWidth: 1.5,
+    width: 50, height: 50, borderRadius: 25, backgroundColor: '#180B2B',
+    alignItems: 'center', justifyContent: 'center', borderWidth: 1.2,
   },
-  xpLabelRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 5 },
-  xpProgressText: { color: colors.textMuted, fontSize: 10, fontWeight: '800', letterSpacing: 0.5 },
-  xpProgressVal: { color: colors.textSecondary, fontSize: 10, fontWeight: '900' },
+  xpLabelRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 6 },
+  xpProgressText: { color: colors.textMuted, fontSize: 9, fontWeight: '800', letterSpacing: 0.5 },
+  xpProgressVal: { color: colors.textSecondary, fontSize: 9, fontWeight: '900' },
   scoreBar: {
-    height: 6, backgroundColor: '#0A0314', borderRadius: radius.full, overflow: 'hidden',
+    height: 6, backgroundColor: '#070211', borderRadius: radius.full, overflow: 'hidden',
   },
   scoreBarFill: { height: '100%', borderRadius: radius.full },
   
+  // FEATURED GAME CHALLENGE CARD
+  featuredHeroCard: {
+    height: 160, borderRadius: radius.lg, marginBottom: spacing.lg,
+    overflow: 'hidden', borderWidth: 1.5, borderColor: 'rgba(255, 62, 108, 0.25)',
+    shadowColor: '#FF3E6C', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.2, shadowRadius: 10,
+    elevation: 5,
+  },
+  heroDecorCircle: {
+    position: 'absolute', right: -40, top: -40, width: 140, height: 140, borderRadius: 70,
+    backgroundColor: 'rgba(255, 62, 108, 0.08)', filter: 'blur(15px)',
+  },
+  featuredHeroContent: {
+    flex: 1, padding: spacing.md, justifyContent: 'space-between',
+  },
+  featuredBadgeRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  featuredBadge: {
+    flexDirection: 'row', alignItems: 'center', gap: 4,
+    backgroundColor: 'rgba(255, 62, 108, 0.15)', borderRadius: radius.sm,
+    paddingHorizontal: 8, paddingVertical: 3, borderWidth: 1, borderColor: '#FF3E6C80',
+  },
+  featuredBadgeText: { color: '#FF3E6C', fontSize: 8, fontWeight: '900', letterSpacing: 0.8 },
+  featuredMultiplier: { color: colors.gold, fontSize: 9, fontWeight: '900', letterSpacing: 0.5 },
+  heroTitle: { color: '#FFF', fontSize: 20, fontWeight: '900', letterSpacing: 0.5 },
+  heroDescription: { color: colors.textSecondary, fontSize: 11, lineHeight: 15, opacity: 0.8 },
+  heroFooter: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  heroStats: { flexDirection: 'row', gap: 6 },
+  heroStatTag: {
+    backgroundColor: 'rgba(255, 255, 255, 0.06)', borderRadius: radius.sm,
+    paddingHorizontal: 6, paddingVertical: 2,
+  },
+  heroStatTagText: { color: colors.textSecondary, fontSize: 8, fontWeight: '900' },
+  heroPlayButton: {
+    flexDirection: 'row', alignItems: 'center', gap: 4,
+    backgroundColor: '#FFCC00', paddingHorizontal: 12, paddingVertical: 6,
+    borderRadius: radius.md,
+  },
+  heroPlayButtonText: { color: '#000', fontSize: 10, fontWeight: '900', letterSpacing: 0.5 },
+
   // Section layout
   sectionHeader: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: spacing.sm, marginTop: 4 },
-  sectionTitle: { color: '#8F7EA6', fontSize: 12, fontWeight: '900', letterSpacing: 1.2, flex: 1 },
+  sectionTitle: { color: '#8F7EA6', fontSize: 11, fontWeight: '900', letterSpacing: 1.2, flex: 1 },
   lockedTag: {
     color: colors.error, fontSize: 9, fontWeight: '900', letterSpacing: 1,
     backgroundColor: 'rgba(255,68,68,0.15)', paddingHorizontal: 8, paddingVertical: 2, borderRadius: radius.sm,
@@ -308,90 +562,115 @@ const styles = StyleSheet.create({
   },
   
   // Ad Recharge Card
-  adCard: { marginBottom: spacing.lg, borderRadius: radius.lg, overflow: 'hidden', borderWidth: 1, borderColor: 'rgba(0, 255, 204, 0.25)' },
+  adCard: { marginBottom: spacing.lg, borderRadius: radius.lg, overflow: 'hidden', borderWidth: 1.5, borderColor: 'rgba(0, 255, 204, 0.25)' },
   cardDisabled: { borderColor: colors.border, opacity: 0.5 },
-  adCardGradient: { borderRadius: radius.lg },
-  adCardContent: { flexDirection: 'row', alignItems: 'center', padding: spacing.md, gap: spacing.md },
+  adCardGradient: { borderRadius: radius.lg, position: 'relative' },
+  adEdgeIndicator: { position: 'absolute', top: 0, left: 0, bottom: 0, width: 3.5 },
+  adCardContent: { flexDirection: 'row', alignItems: 'center', padding: spacing.md, gap: spacing.md, paddingLeft: 16 },
   adIconWrap: {
-    width: 48, height: 48, borderRadius: 24,
-    backgroundColor: '#0E2420', alignItems: 'center', justifyContent: 'center',
-    borderWidth: 1.5, position: 'relative',
+    width: 44, height: 44, borderRadius: 22,
+    backgroundColor: '#0A201C', alignItems: 'center', justifyContent: 'center',
+    borderWidth: 1.2, position: 'relative',
   },
   pulseDot: {
-    position: 'absolute', top: 2, right: 2, width: 8, height: 8, borderRadius: 4,
+    position: 'absolute', top: 2, right: 2, width: 6, height: 6, borderRadius: 3,
   },
   adCardText: { flex: 1 },
-  adCardTitle: { color: colors.textPrimary, fontSize: 14, fontWeight: '900', letterSpacing: 0.5 },
-  adCardSub: { color: colors.textSecondary, fontSize: 11, marginTop: 2 },
+  adCardTitle: { color: colors.textPrimary, fontSize: 13, fontWeight: '900', letterSpacing: 0.5 },
+  adCardSub: { color: colors.textSecondary, fontSize: 10.5, marginTop: 2, opacity: 0.8 },
   textDisabled: { color: colors.textMuted },
   adEarnBadge: {
     backgroundColor: 'rgba(0,255,204,0.15)', borderRadius: radius.md,
     paddingHorizontal: 8, paddingVertical: 4, borderWidth: 1, borderColor: colors.neonDim,
   },
-  adEarnText: { color: colors.neon, fontSize: 10, fontWeight: '900', letterSpacing: 0.5 },
+  adEarnText: { color: colors.neon, fontSize: 9, fontWeight: '900', letterSpacing: 0.5 },
   
   // Active Tournament Card
   activeTCard: {
-    backgroundColor: '#1E0E35', borderRadius: radius.lg,
-    borderWidth: 1.5, borderColor: 'rgba(255,215,0,0.35)',
+    backgroundColor: '#1B0E32', borderRadius: radius.lg,
+    borderWidth: 1.5, borderColor: 'rgba(255,215,0,0.3)',
     padding: spacing.md, marginBottom: spacing.lg, gap: spacing.md,
-    position: 'relative', overflow: 'hidden',
-    shadowColor: colors.gold, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.2, shadowRadius: 10,
-    elevation: 6,
-  },
-  activeTCardGlow: {
-    position: 'absolute', top: -50, right: -50, width: 100, height: 100, borderRadius: 50,
-    backgroundColor: 'rgba(255,215,0,0.06)', filter: 'blur(20px)',
+    shadowColor: colors.gold, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.15, shadowRadius: 8,
+    elevation: 5,
   },
   activeTRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   lobbyMissionTitleRow: { flexDirection: 'row', alignItems: 'center', gap: 8, flex: 1 },
   liveIndicator: {
-    width: 8, height: 8, borderRadius: 4, backgroundColor: '#FF4444',
+    width: 6, height: 6, borderRadius: 3, backgroundColor: '#FF3E6C',
     alignItems: 'center', justifyContent: 'center',
   },
   liveIndicatorPulse: {
-    width: 14, height: 14, borderRadius: 7, backgroundColor: '#FF444440',
+    width: 12, height: 12, borderRadius: 6, backgroundColor: 'rgba(255,62,108,0.4)',
     position: 'absolute',
   },
-  activeTName: { color: colors.textPrimary, fontSize: 15, fontWeight: '900', letterSpacing: 0.3 },
+  activeTName: { color: colors.textPrimary, fontSize: 14, fontWeight: '900', letterSpacing: 0.3 },
   activeTBadge: {
-    backgroundColor: 'rgba(255,215,0,0.12)', borderRadius: radius.sm,
+    backgroundColor: 'rgba(255,215,0,0.1)', borderRadius: radius.sm,
     paddingHorizontal: 8, paddingVertical: 3,
     borderWidth: 1, borderColor: colors.gold,
   },
   activeTBadgeText: { color: colors.gold, fontSize: 8, fontWeight: '900', letterSpacing: 0.8 },
   statsGrid: { flexDirection: 'row', gap: spacing.sm },
   statCard: {
-    flex: 1, backgroundColor: '#110524B3', borderRadius: radius.md,
-    paddingVertical: spacing.md, paddingHorizontal: spacing.sm, alignItems: 'center', borderWidth: 1, borderColor: '#3D1F6E70',
+    flex: 1, backgroundColor: '#0F0422', borderRadius: radius.md,
+    paddingVertical: spacing.md, paddingHorizontal: spacing.sm, alignItems: 'center', borderWidth: 1, borderColor: '#3D1F6E50',
   },
-  statValue: { fontSize: 14, fontWeight: '900', textAlign: 'center', marginTop: 3 },
-  statLabel: { color: colors.textMuted, fontSize: 9, fontWeight: '800', letterSpacing: 0.5, textAlign: 'center' },
+  statValue: { fontSize: 13, fontWeight: '900', textAlign: 'center', marginTop: 3 },
+  statLabel: { color: colors.textMuted, fontSize: 8.5, fontWeight: '800', letterSpacing: 0.5, textAlign: 'center' },
   
+  // Challengers List
+  challengersList: {
+    backgroundColor: 'rgba(0,0,0,0.15)', borderRadius: radius.md,
+    padding: spacing.sm, gap: 6, borderWidth: 1, borderColor: '#3D1F6E35',
+  },
+  challengerListHeader: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 4 },
+  challengerListTitle: { color: '#8F7EA6', fontSize: 8.5, fontWeight: '900', letterSpacing: 1 },
+  challengerRow: {
+    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
+    paddingVertical: 6, paddingHorizontal: 8, borderRadius: radius.sm,
+  },
+  challengerLeft: { flexDirection: 'row', alignItems: 'center', gap: 8, flex: 1 },
+  challengerRankText: { color: '#8F7EA6', fontSize: 11, fontWeight: '900', width: 22 },
+  challengerName: { color: colors.textSecondary, fontSize: 11, fontWeight: '700' },
+  challengerScore: { color: colors.textPrimary, fontSize: 11, fontWeight: '900' },
+
   // No Active Lobby joined placeholder
   noTournamentCard: {
-    backgroundColor: '#1B0D2D', borderRadius: radius.lg,
-    borderWidth: 1.5, borderColor: '#3D1F6E60',
-    padding: spacing.xl, alignItems: 'center', gap: spacing.sm,
-    marginBottom: spacing.lg,
+    backgroundColor: '#170B27', borderRadius: radius.lg,
+    borderWidth: 1.5, borderColor: '#3D1F6E50',
+    padding: spacing.md, marginBottom: spacing.lg,
   },
-  noTournamentText: { color: colors.textSecondary, fontSize: 13, fontWeight: '800', textAlign: 'center' },
-  noTournamentSub: { color: colors.textMuted, fontSize: 11, textAlign: 'center', lineHeight: 16 },
+  noTHeader: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 6 },
+  noTournamentText: { color: colors.textPrimary, fontSize: 13, fontWeight: '900' },
+  noTournamentSub: { color: colors.textMuted, fontSize: 10.5, lineHeight: 15, marginBottom: 8 },
+  lobbyRegisterButton: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6,
+    backgroundColor: '#FFCC00', paddingVertical: 10, borderRadius: radius.md,
+    marginTop: 8,
+  },
+  lobbyRegisterButtonText: { color: '#000', fontSize: 11, fontWeight: '900', letterSpacing: 0.5 },
   
-  // Tactical Objectives (How to Earn)
-  howGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm, marginBottom: spacing.lg },
-  howCard: {
-    width: '47.5%', backgroundColor: '#1A0B2E80', borderRadius: radius.lg,
-    padding: spacing.md, alignItems: 'center', borderWidth: 1, borderColor: '#3D1F6E60',
-    gap: 6,
+  // DAILY QUESTS / TACTICAL OBJECTIVES
+  objectivesList: { gap: spacing.sm, marginBottom: spacing.lg },
+  objectiveCard: {
+    flexDirection: 'row', alignItems: 'center', backgroundColor: '#14082590',
+    borderRadius: radius.md, padding: spacing.md, gap: spacing.sm,
+    borderWidth: 1, borderColor: '#3D1F6E40',
   },
-  howIconWrap: {
-    width: 42, height: 42, borderRadius: 21,
-    borderWidth: 1, alignItems: 'center', justifyContent: 'center',
-    marginBottom: 2,
+  objectiveCompleted: {
+    borderColor: 'rgba(0, 255, 204, 0.25)',
+    backgroundColor: '#091C1760',
   },
-  howTitle: { color: colors.textPrimary, fontSize: 12, fontWeight: '900', textAlign: 'center', letterSpacing: 0.2 },
-  howSub: { color: colors.textMuted, fontSize: 10, textAlign: 'center', lineHeight: 14 },
+  objCheckContainer: { justifyContent: 'center', alignItems: 'center' },
+  objTextContainer: { flex: 1, gap: 2 },
+  objTitle: { color: colors.textPrimary, fontSize: 12, fontWeight: '900' },
+  objTitleStrikethrough: { color: '#8F7EA6', textDecorationLine: 'line-through', opacity: 0.8 },
+  objDesc: { color: colors.textMuted, fontSize: 9.5 },
+  objXpBadge: {
+    borderWidth: 1, borderColor: '#3D1F6E50', borderRadius: radius.sm,
+    paddingHorizontal: 8, paddingVertical: 3,
+  },
+  objXpText: { color: '#8F7EA6', fontSize: 8, fontWeight: '900', letterSpacing: 0.5 },
   
   modalRoot: { flex: 1, backgroundColor: colors.bg },
   modalHeader: {

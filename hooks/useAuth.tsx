@@ -293,10 +293,24 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
    */
   const endGameSession = async (pts: number) => {
     if (!user) return;
-    const oldPoints = profile?.points ?? 0;
-    // 1. Award points
+
+    // 1. Snapshot current rank BEFORE awarding points
+    let rankBefore = -1;
+    try {
+      const { data: board } = await supabase
+        .from('profiles')
+        .select('id')
+        .order('points', { ascending: false })
+        .limit(200);
+      if (board) {
+        const idx = board.findIndex((r: any) => r.id === user.id);
+        rankBefore = idx >= 0 ? idx + 1 : -1;
+      }
+    } catch { /* ignore — will fall back to no notification */ }
+
+    // 2. Award points
     await addPoints(pts);
-    // 2. Record the game – updates streak & games_played and sets needs_ad_watch
+    // 3. Record the game – updates streak & games_played and sets needs_ad_watch
     const tz = (() => {
       try {
         return Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC';
@@ -305,11 +319,25 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
     })();
     await supabase.rpc('record_game_played', { p_user_id: user.id, p_timezone: tz });
-    // 3. Refresh local profile so UI reflects updated stats & streak
+    // 4. Refresh local profile so UI reflects updated stats & streak
     await refreshProfile();
-    // 4. Send competitive rank-alert notification
-    if (pts > 0) {
-      await notifyRankAlert(user.id, activeTournamentIdRef.current);
+    // 5. Only send rank alert if someone actually overtook the user during this session
+    if (pts > 0 && rankBefore > 0) {
+      try {
+        const { data: boardAfter } = await supabase
+          .from('profiles')
+          .select('id')
+          .order('points', { ascending: false })
+          .limit(200);
+        if (boardAfter) {
+          const idx = boardAfter.findIndex((r: any) => r.id === user.id);
+          const rankAfter = idx >= 0 ? idx + 1 : rankBefore;
+          // Rank number got higher = someone overtook us → fire alert
+          if (rankAfter > rankBefore) {
+            await notifyRankAlert(user.id, activeTournamentIdRef.current);
+          }
+        }
+      } catch { /* ignore notification errors */ }
     }
   };
 
