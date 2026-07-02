@@ -457,6 +457,19 @@ const en = {
   activeBattleLobby: 'ACTIVE BATTLE LOBBY',
   championPlaceholder: 'Champion',
   lvlLabel: 'LVL',
+  prizeDashboard: 'Prize Dashboard',
+  prizeDashboardSub: 'Top players per tournament',
+  prizeDashboardSubtitle: 'Top 3 players per tournament — tap contact to copy',
+  loadingRankings: 'Loading tournament rankings...',
+  noTournamentData: 'No tournament data yet',
+  rank1st: '1ST',
+  rank2nd: '2ND',
+  rank3rd: '3RD',
+  copied: 'Copied',
+  contactCopied: 'Contact copied to clipboard',
+  retry: 'Retry',
+  noParticipants: 'No participants yet',
+  prizeDashboardTip: 'Tip: Run v_tournament_winners in Supabase SQL Editor for a quick full export',
 };
 
 const am: Translations = {
@@ -914,6 +927,19 @@ const am: Translations = {
   activeBattleLobby: 'የገቡበት የውድድር ክፍል',
   championPlaceholder: 'ሻምፒዮን',
   lvlLabel: 'ደረጃ',
+  prizeDashboard: 'የሽልማት ሰሌዳ',
+  prizeDashboardSub: 'የእያንዳንዱ ውድድር ከፍተኛ ተጫዋቾች',
+  prizeDashboardSubtitle: 'የእያንዳንዱ ውድድር ከፍተኛ 3 ተጫዋቾች — ለመቅዳት ይንኩ',
+  loadingRankings: 'የተጫዋቾች ደረጃ በመጫን ላይ...',
+  noTournamentData: 'ምንም የውድድር መረጃ የለም',
+  rank1st: '1ኛ',
+  rank2nd: '2ኛ',
+  rank3rd: '3ኛ',
+  copied: 'ተቀድቷል',
+  contactCopied: 'የመገናኛ መረጃው ተቀድቷል',
+  retry: 'እንደገና ሞክር',
+  noParticipants: 'ገና ምንም ተሳታፊ የለም',
+  prizeDashboardTip: 'ማሳሰቢያ: ሙሉ ዝርዝሩን ለማውጣት v_tournament_winners የሚለውን በSupabase ይጠቀሙ',
 };
 
 export const translations: Record<Lang, Translations> = { en, am };

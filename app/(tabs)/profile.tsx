@@ -252,8 +252,8 @@ export default function ProfileScreen() {
             <View style={styles.settingLeft}>
               <Crown color={colors.gold} size={18} fill={colors.gold} />
               <View style={styles.settingInfo}>
-                <Text style={[styles.settingTitle, { color: colors.gold }]}>Prize Dashboard</Text>
-                <Text style={styles.settingSub}>Top players per tournament</Text>
+                <Text style={[styles.settingTitle, { color: colors.gold }]}>{t('prizeDashboard')}</Text>
+                <Text style={styles.settingSub}>{t('prizeDashboardSub')}</Text>
               </View>
             </View>
             <ChevronRight color={colors.gold} size={18} />

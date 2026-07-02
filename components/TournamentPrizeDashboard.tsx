@@ -8,6 +8,8 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { X, Trophy, Crown, Medal, Copy, RefreshCw, Phone, Mail, Calendar, Users } from 'lucide-react-native';
 import { supabase } from '@/lib/supabase';
 import { colors, spacing, radius, shadow } from '@/constants/theme';
+import { useLanguage } from '@/hooks/useLanguage';
+import { formatEthiopianMonthYear } from '@/lib/ethiopianCalendar';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 type TopPlayer = {
@@ -37,23 +39,24 @@ type TournamentGroup = {
 
 // ── Rank medal config ─────────────────────────────────────────────────────────
 const RANK_CONFIG = [
-  { icon: Crown,  color: '#FFD700', bg: 'rgba(255,215,0,0.12)',  border: 'rgba(255,215,0,0.35)',  label: '1ST' },
-  { icon: Trophy, color: '#C0C0C0', bg: 'rgba(192,192,192,0.1)', border: 'rgba(192,192,192,0.3)', label: '2ND' },
-  { icon: Medal,  color: '#CD7F32', bg: 'rgba(205,127,50,0.1)',  border: 'rgba(205,127,50,0.3)',  label: '3RD' },
+  { icon: Crown,  color: '#FFD700', bg: 'rgba(255,215,0,0.12)',  border: 'rgba(255,215,0,0.35)',  key: 'rank1st' as const },
+  { icon: Trophy, color: '#C0C0C0', bg: 'rgba(192,192,192,0.1)', border: 'rgba(192,192,192,0.3)', key: 'rank2nd' as const },
+  { icon: Medal,  color: '#CD7F32', bg: 'rgba(205,127,50,0.1)',  border: 'rgba(205,127,50,0.3)',  key: 'rank3rd' as const },
 ];
 
 // ── Copy helper ───────────────────────────────────────────────────────────────
-function copyToClipboard(text: string, label: string) {
+function copyToClipboard(text: string, successTitle: string, successMsg: string) {
   if (Platform.OS === 'web') {
     navigator.clipboard?.writeText(text);
   } else {
     Clipboard.setString(text);
   }
-  Alert.alert('Copied', `${label} copied to clipboard`);
+  Alert.alert(successTitle, successMsg);
 }
 
 // ── Player Row ────────────────────────────────────────────────────────────────
 function PlayerRow({ player }: { player: TopPlayer }) {
+  const { t } = useLanguage();
   const rank = Math.min(player.rank - 1, 2); // clamp to 0–2 index
   const cfg  = RANK_CONFIG[rank];
   const RankIcon = cfg.icon;
@@ -62,14 +65,14 @@ function PlayerRow({ player }: { player: TopPlayer }) {
   const isPhone  = contact.startsWith('+') || /^\d/.test(contact);
   const ContactIcon = isPhone ? Phone : Mail;
 
-  const displayName = player.full_name || player.username || 'Unknown Player';
+  const displayName = player.full_name || player.username || t('championPlaceholder');
 
   return (
     <View style={[styles.playerRow, { backgroundColor: cfg.bg, borderColor: cfg.border }]}>
       {/* Rank badge */}
       <View style={[styles.rankBadge, { borderColor: cfg.color }]}>
         <RankIcon color={cfg.color} size={14} fill={cfg.color} />
-        <Text style={[styles.rankLabel, { color: cfg.color }]}>{cfg.label}</Text>
+        <Text style={[styles.rankLabel, { color: cfg.color }]}>{t(cfg.key)}</Text>
       </View>
 
       {/* Player info */}
@@ -83,7 +86,7 @@ function PlayerRow({ player }: { player: TopPlayer }) {
           <Text style={styles.contactText} numberOfLines={1}>{contact}</Text>
           {contact !== '—' && (
             <TouchableOpacity
-              onPress={() => copyToClipboard(contact, 'Contact')}
+              onPress={() => copyToClipboard(contact, t('copied'), t('contactCopied'))}
               hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
             >
               <Copy color={cfg.color} size={11} />
@@ -97,7 +100,7 @@ function PlayerRow({ player }: { player: TopPlayer }) {
         <Text style={[styles.pointsValue, { color: cfg.color }]}>
           {player.tournament_points.toLocaleString()}
         </Text>
-        <Text style={styles.pointsLabel}>PTS</Text>
+        <Text style={styles.pointsLabel}>{t('pts').toUpperCase()}</Text>
       </View>
     </View>
   );
@@ -105,9 +108,13 @@ function PlayerRow({ player }: { player: TopPlayer }) {
 
 // ── Tournament Card ───────────────────────────────────────────────────────────
 function TournamentCard({ group }: { group: TournamentGroup }) {
+  const { t, lang } = useLanguage();
   const endDate  = new Date(group.end_time);
   const isActive = group.active && endDate > new Date();
-  const dateStr  = endDate.toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' });
+  
+  const dateStr = lang === 'am' 
+    ? formatEthiopianMonthYear(group.end_time, 'am')
+    : endDate.toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' });
 
   return (
     <View style={styles.card}>
@@ -123,13 +130,13 @@ function TournamentCard({ group }: { group: TournamentGroup }) {
             <Text style={styles.cardMetaText}>{dateStr}</Text>
             <View style={[styles.statusDot, { backgroundColor: isActive ? colors.success : colors.textMuted }]} />
             <Text style={[styles.cardMetaText, { color: isActive ? colors.success : colors.textMuted }]}>
-              {isActive ? 'ACTIVE' : 'ENDED'}
+              {isActive ? t('active') : t('ended2')}
             </Text>
           </View>
         </View>
         <View style={styles.prizeTag}>
           <Text style={styles.prizeAmount}>{group.prize_pool}</Text>
-          <Text style={styles.prizeLabel}>PRIZE</Text>
+          <Text style={styles.prizeLabel}>{t('prize').toUpperCase()}</Text>
         </View>
       </LinearGradient>
 
@@ -138,7 +145,7 @@ function TournamentCard({ group }: { group: TournamentGroup }) {
         {group.players.length === 0 ? (
           <View style={styles.emptyState}>
             <Users color={colors.textMuted} size={20} />
-            <Text style={styles.emptyText}>No participants yet</Text>
+            <Text style={styles.emptyText}>{t('noParticipants')}</Text>
           </View>
         ) : (
           group.players.map((p) => <PlayerRow key={p.user_id} player={p} />)
@@ -150,6 +157,7 @@ function TournamentCard({ group }: { group: TournamentGroup }) {
 
 // ── Main Modal ────────────────────────────────────────────────────────────────
 export default function TournamentPrizeDashboard({ onClose }: { onClose: () => void }) {
+  const { t } = useLanguage();
   const insets = useSafeAreaInsets();
   const [groups, setGroups]   = useState<TournamentGroup[]>([]);
   const [loading, setLoading] = useState(true);
@@ -245,32 +253,32 @@ export default function TournamentPrizeDashboard({ onClose }: { onClose: () => v
         </TouchableOpacity>
         <View style={styles.headerCenter}>
           <Crown color={colors.gold} size={18} fill={colors.gold} />
-          <Text style={styles.headerTitle}>PRIZE DASHBOARD</Text>
+          <Text style={styles.headerTitle}>{t('prizeDashboard').toUpperCase()}</Text>
         </View>
         <TouchableOpacity onPress={load} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
           <RefreshCw color={colors.textMuted} size={18} />
         </TouchableOpacity>
       </LinearGradient>
 
-      <Text style={styles.subtitle}>Top 3 players per tournament — tap contact to copy</Text>
+      <Text style={styles.subtitle}>{t('prizeDashboardSubtitle')}</Text>
 
       {/* Content */}
       {loading ? (
         <View style={styles.center}>
           <ActivityIndicator color={colors.gold} size="large" />
-          <Text style={styles.loadingText}>Loading tournament rankings...</Text>
+          <Text style={styles.loadingText}>{t('loadingRankings')}</Text>
         </View>
       ) : error ? (
         <View style={styles.center}>
           <Text style={styles.errorText}>{error}</Text>
           <TouchableOpacity style={styles.retryBtn} onPress={load}>
-            <Text style={styles.retryBtnText}>Retry</Text>
+            <Text style={styles.retryBtnText}>{t('retry')}</Text>
           </TouchableOpacity>
         </View>
       ) : groups.length === 0 ? (
         <View style={styles.center}>
           <Trophy color={colors.textMuted} size={48} />
-          <Text style={styles.emptyText}>No tournament data yet</Text>
+          <Text style={styles.emptyText}>{t('noTournamentData')}</Text>
         </View>
       ) : (
         <ScrollView
@@ -281,7 +289,7 @@ export default function TournamentPrizeDashboard({ onClose }: { onClose: () => v
             <TournamentCard key={g.tournament_id} group={g} />
           ))}
           <Text style={styles.tip}>
-            Tip: Run v_tournament_winners in Supabase SQL Editor for a quick full export
+            {t('prizeDashboardTip')}
           </Text>
         </ScrollView>
       )}
