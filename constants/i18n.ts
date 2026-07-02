@@ -470,6 +470,26 @@ const en = {
   retry: 'Retry',
   noParticipants: 'No participants yet',
   prizeDashboardTip: 'Tip: Run v_tournament_winners in Supabase SQL Editor for a quick full export',
+  
+  // Profile Stats & Levels
+  maxLevel: 'MAX LEVEL',
+  ptsToLevelUp: 'pts to level up →',
+  statTotalXp: 'TOTAL XP',
+  statGames: 'GAMES',
+  statStreak: 'STREAK',
+  statCampaign: 'CAMPAIGN',
+  performanceHighlights: 'PERFORMANCE HIGHLIGHTS',
+  lifetimePoints: 'Lifetime Points',
+  gamesPlayedHighlight: 'Games Played',
+  dayStreakHighlight: 'Day Streak',
+  playerLevelHighlight: 'Player Level',
+  tierLegend: 'LEGEND',
+  tierMaster: 'MASTER',
+  tierDiamond: 'DIAMOND',
+  tierGold: 'GOLD',
+  tierSilver: 'SILVER',
+  tierBronze: 'BRONZE',
+  tierRookie: 'ROOKIE',
 };
 
 const am: Translations = {
@@ -940,6 +960,26 @@ const am: Translations = {
   retry: 'እንደገና ሞክር',
   noParticipants: 'ገና ምንም ተሳታፊ የለም',
   prizeDashboardTip: 'ማሳሰቢያ: ሙሉ ዝርዝሩን ለማውጣት v_tournament_winners የሚለውን በSupabase ይጠቀሙ',
+
+  // Profile Stats & Levels
+  maxLevel: 'ከፍተኛ ደረጃ',
+  ptsToLevelUp: 'ነጥብ ለደረጃ እድገት →',
+  statTotalXp: 'ጠቅላላ ኤክስፒ',
+  statGames: 'ጨዋታዎች',
+  statStreak: 'ተከታታይ',
+  statCampaign: 'ውድድር',
+  performanceHighlights: 'የአፈጻጸም ዋና ዋና ነጥቦች',
+  lifetimePoints: 'የህይወት ዘመን ነጥቦች',
+  gamesPlayedHighlight: 'የተጫወቷቸው ጨዋታዎች',
+  dayStreakHighlight: 'ተከታታይ ቀናት',
+  playerLevelHighlight: 'የተጫዋች ደረጃ',
+  tierLegend: 'ታዋቂ',
+  tierMaster: 'ባለሙያ',
+  tierDiamond: 'አልማዝ',
+  tierGold: 'ወርቅ',
+  tierSilver: 'ብር',
+  tierBronze: 'ነሐስ',
+  tierRookie: 'ጀማሪ',
 };
 
 export const translations: Record<Lang, Translations> = { en, am };
