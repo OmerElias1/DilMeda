@@ -36,6 +36,7 @@ export default function ProfileScreen() {
   const [showAchievementsModal, setShowAchievementsModal] = useState(false);
   const [showSupportModal, setShowSupportModal] = useState(false);
   const [showPrizeDashboard, setShowPrizeDashboard] = useState(false);
+  const [prizeDashboardKey, setPrizeDashboardKey] = useState(0);
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [passwordLoading, setPasswordLoading] = useState(false);
@@ -248,7 +249,7 @@ export default function ProfileScreen() {
           </TouchableOpacity>
 
           {/* Prize Dashboard */}
-          <TouchableOpacity style={[styles.settingRow, styles.prizeDashboardRow]} onPress={() => setShowPrizeDashboard(true)}>
+          <TouchableOpacity style={[styles.settingRow, styles.prizeDashboardRow]} onPress={() => { setPrizeDashboardKey(k => k + 1); setShowPrizeDashboard(true); }}>
             <View style={styles.settingLeft}>
               <Crown color={colors.gold} size={18} fill={colors.gold} />
               <View style={styles.settingInfo}>
@@ -370,7 +371,7 @@ export default function ProfileScreen() {
         presentationStyle="fullScreen"
         onRequestClose={() => setShowPrizeDashboard(false)}
       >
-        <TournamentPrizeDashboard onClose={() => setShowPrizeDashboard(false)} />
+        <TournamentPrizeDashboard key={prizeDashboardKey} onClose={() => setShowPrizeDashboard(false)} />
       </Modal>
     </SafeAreaView>
   );
