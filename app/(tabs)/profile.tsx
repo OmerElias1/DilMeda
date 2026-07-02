@@ -9,7 +9,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import {
   LogOut, Star, Award, Clock, ChevronRight, Trophy, Lock,
   Globe, Bell, Sparkles, MessageSquare, X, Crown, Zap,
-  Target, Flame, TrendingUp, Shield, GamepadIcon
+  Target, Flame, TrendingUp, Shield, Gamepad2
 } from 'lucide-react-native';
 import { useAuth } from '@/hooks/useAuth';
 import { useTournament } from '@/hooks/useTournament';
@@ -203,14 +203,14 @@ export default function ProfileScreen() {
             color={colors.gold}
           />
           <StatPill
-            icon={<GamepadIcon color={colors.neon} size={18} />}
+            icon={<Gamepad2 color={colors.neon} size={18} />}
             value={profile?.games_played ?? 0}
             label={t('statGames')}
             color={colors.neon}
           />
           <StatPill
             icon={<Flame color="#FF6B6B" size={18} />}
-            value={`${profile?.daily_streak ?? 0}🔥`}
+            value={profile?.daily_streak ?? 0}
             label={t('statStreak')}
             color="#FF6B6B"
           />
@@ -303,22 +303,22 @@ export default function ProfileScreen() {
           </View>
           <View style={styles.highlightsGrid}>
             <View style={[styles.highlightCard, { borderColor: colors.gold + '40' }]}>
-              <Text style={styles.highlightEmoji}>🏆</Text>
+              <Trophy color={colors.gold} size={24} fill={colors.gold + '25'} />
               <Text style={[styles.highlightNum, { color: colors.gold }]}>{pts.toLocaleString()}</Text>
               <Text style={styles.highlightLbl}>{t('lifetimePoints')}</Text>
             </View>
             <View style={[styles.highlightCard, { borderColor: colors.neon + '40' }]}>
-              <Text style={styles.highlightEmoji}>🎮</Text>
+              <Gamepad2 color={colors.neon} size={24} />
               <Text style={[styles.highlightNum, { color: colors.neon }]}>{profile?.games_played ?? 0}</Text>
               <Text style={styles.highlightLbl}>{t('gamesPlayedHighlight')}</Text>
             </View>
             <View style={[styles.highlightCard, { borderColor: '#FF6B6B40' }]}>
-              <Text style={styles.highlightEmoji}>🔥</Text>
+              <Flame color="#FF6B6B" size={24} fill="#FF6B6B25" />
               <Text style={[styles.highlightNum, { color: '#FF6B6B' }]}>{profile?.daily_streak ?? 0}</Text>
               <Text style={styles.highlightLbl}>{t('dayStreakHighlight')}</Text>
             </View>
             <View style={[styles.highlightCard, { borderColor: lvl.color + '40' }]}>
-              <Text style={styles.highlightEmoji}>⭐</Text>
+              <Star color={lvl.color} size={24} fill={lvl.color + '25'} />
               <Text style={[styles.highlightNum, { color: lvl.color }]}>{lvl.level}</Text>
               <Text style={styles.highlightLbl}>{t('playerLevelHighlight')}</Text>
             </View>

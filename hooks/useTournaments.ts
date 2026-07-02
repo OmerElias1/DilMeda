@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { supabase, Tournament, TournamentRegistration } from '@/lib/supabase';
 import { useAuth } from './useAuth';
 import { notifyTournamentStart, notifyTournamentEnd } from '@/lib/notifications';
@@ -35,7 +36,31 @@ export function useTournaments() {
       })
     );
     setTournaments(withCounts);
-  }, []);
+
+    if (user) {
+      try {
+        const notifiedStr = await AsyncStorage.getItem('@dilmeda_notified_tournaments');
+        if (notifiedStr === null) {
+          // First time tracking: initialize with current active IDs to prevent spamming old tournaments
+          const initialIds = withCounts.map(t => t.id);
+          await AsyncStorage.setItem('@dilmeda_notified_tournaments', JSON.stringify(initialIds));
+        } else {
+          const notifiedIds: string[] = JSON.parse(notifiedStr);
+          const newTournaments = withCounts.filter(t => !notifiedIds.includes(t.id));
+
+          if (newTournaments.length > 0) {
+            for (const newT of newTournaments) {
+              await notifyTournamentStart(user.id, newT.name);
+              notifiedIds.push(newT.id);
+            }
+            await AsyncStorage.setItem('@dilmeda_notified_tournaments', JSON.stringify(notifiedIds));
+          }
+        }
+      } catch (e) {
+        console.error('Error handling new tournament notifications:', e);
+      }
+    }
+  }, [user]);
 
   const fetchMyPoints = useCallback(async (tournamentId: string) => {
     if (!user) return;
@@ -103,10 +128,6 @@ export function useTournaments() {
       .insert({ user_id: user.id, tournament_id: tournamentId });
     if (!error) {
       await fetchMyRegistration();
-      // Send tournament start notification
-      if (tObj) {
-        await notifyTournamentStart(user.id, tObj.name);
-      }
     }
     setRegistering(false);
     return { error: error?.message ?? null };

@@ -21,13 +21,13 @@ type LeaderRow = { id: string; username: string | null; points: number; games_pl
 
 // Helper to match level/tier style with profile page
 function getLevelInfo(points: number) {
-  if (points >= 10000) return { title: 'LEGEND', color: '#FF6B6B' };
-  if (points >= 5000)  return { title: 'MASTER', color: '#FFD700' };
-  if (points >= 2500)  return { title: 'DIAMOND', color: '#00FFCC' };
-  if (points >= 1000)  return { title: 'GOLD', color: '#FFD700' };
-  if (points >= 500)   return { title: 'SILVER', color: '#C0C0C0' };
-  if (points >= 100)   return { title: 'BRONZE', color: '#CD7F32' };
-  return { title: 'ROOKIE', color: '#8F7EA6' };
+  if (points >= 10000) return { tierKey: 'tierLegend' as const, color: '#FF6B6B' };
+  if (points >= 5000)  return { tierKey: 'tierMaster' as const, color: '#FFD700' };
+  if (points >= 2500)  return { tierKey: 'tierDiamond' as const, color: '#00FFCC' };
+  if (points >= 1000)  return { tierKey: 'tierGold' as const, color: '#FFD700' };
+  if (points >= 500)   return { tierKey: 'tierSilver' as const, color: '#C0C0C0' };
+  if (points >= 100)   return { tierKey: 'tierBronze' as const, color: '#CD7F32' };
+  return { tierKey: 'tierRookie' as const, color: '#8F7EA6' };
 }
 
 function PodiumBlock({ player, rank }: { player: LeaderRow; rank: number }) {
@@ -285,7 +285,7 @@ export default function LeaderboardScreen() {
                         {p.username ?? 'Player'}{isMe ? t('youLabel') : ''}
                       </Text>
                       <View style={[styles.levelTag, { backgroundColor: levelInfo.color + '15', borderColor: levelInfo.color + '40' }]}>
-                        <Text style={[styles.levelTagText, { color: levelInfo.color }]}>{levelInfo.title}</Text>
+                        <Text style={[styles.levelTagText, { color: levelInfo.color }]}>{t(levelInfo.tierKey)}</Text>
                       </View>
                     </View>
 

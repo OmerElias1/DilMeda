@@ -1,5 +1,6 @@
 import { supabase } from './supabase';
 import * as Notifications from 'expo-notifications';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export type NotificationType = 
   | 'tournament_start'
@@ -112,37 +113,58 @@ export async function notifyRankAlert(
     let title = '';
     let body = '';
 
+    const lang = await AsyncStorage.getItem('@dilmeda_language');
+    const isAm = lang === 'am';
+
     if (myRank === 0) {
       // Not on board yet
-      title = '🎮 Jump into the race!';
-      body = 'You\'re not on the leaderboard yet. Play now to grab a spot!';
+      title = isAm ? '🎮 ውድድሩን ይቀላቀሉ!' : '🎮 Jump into the race!';
+      body = isAm 
+        ? 'እስካሁን የደረጃ ሰንጠረዥ ውስጥ አልገቡም። ቦታ ለማግኘት አሁኑኑ ይጫወቱ!' 
+        : "You're not on the leaderboard yet. Play now to grab a spot!";
     } else if (myRank === 1) {
       // Currently #1 — warn about the chaser
       if (chaser) {
-        title = '👑 You\'re #1 — but for how long?';
-        body = `${chaserName} is breathing down your neck. Stay sharp and defend your crown!`;
+        title = isAm ? '👑 ደረጃ 1 ነዎት — ግን ለምን ያህል ጊዜ?' : "👑 You're #1 — but for how long?";
+        body = isAm 
+          ? `${chaserName} እየተከተለዎት ነው። ዘና አይበሉ፣ ደረጃዎን ያስጠብቁ!` 
+          : `${chaserName} is breathing down your neck. Stay sharp and defend your crown!`;
       } else {
-        title = '🏆 Unbeatable!';
-        body = 'You sit alone at the top. Keep going to stay there!';
+        title = isAm ? '🏆 ተወዳዳሪ የሌለው!' : '🏆 Unbeatable!';
+        body = isAm 
+          ? 'ብቻዎን የደረጃው አናት ላይ ተቀምጠዋል። እዚያው ለመቆየት መጫወትዎን ይቀጥሉ!' 
+          : 'You sit alone at the top. Keep going to stay there!';
       }
     } else {
       // Not #1 — pick a message style based on rank and context
       const dangerZone = totalPlayers > 0 && myRank > Math.ceil(totalPlayers * 0.7);
 
-      const rivalMessages = [
+      const rivalMessages = isAm ? [
+        { t: '⚡ የፉክክር ማስጠንቀቂያ', b: `${rivalName} በነጥብ በልጦዎታል። ደረጃዎን ለመመለስ አሁኑኑ ይጫወቱ!` },
+        { t: '🔥 ቀድመውዎት ሄዱ!', b: `${rivalName} ቀድሞዎት ሄዷል። ወደ ጨዋታው በመመለስ ቦታዎን ያስመልሱ!` },
+        { t: '😤 እንዳያሸንፉዎት!', b: `${rivalName} ከእርስዎ በልጧል። ማን እንደሆነ ያሳዩዋቸው — አሁኑኑ ይጫወቱ!` },
+        { t: '⚠️ ደረጃዎ እየቀነሰ ነው!', b: `${rivalName} እየራቀዎት ነው። ጊዜው ሳይረፍድ ወደ ጨዋታው ይመለሱ!` },
+      ] : [
         { t: '⚡ Rivalry Alert', b: `${rivalName} has surpassed your points. Play now to reclaim your rank!` },
         { t: '🔥 You\'ve been overtaken!', b: `${rivalName} just jumped ahead. Hit the games and take back your spot!` },
         { t: '😤 Don\'t let them win!', b: `${rivalName} is ahead of you. Show them who\'s boss — play now!` },
         { t: '⚠️ Rank Slipping!', b: `${rivalName} is pulling away. Get back in the game before it\'s too late!` },
       ];
 
-      const eliminationMessages = [
+      const eliminationMessages = isAm ? [
+        { t: '🚨 የመሰረዝ ስጋት!', b: 'ከውድድሩ የመሰረዝ ስጋት አለብዎት። ደረጃዎን ለማሻሻል አሁኑኑ ይጫወቱ!' },
+        { t: '⚠️ የአደጋ ቀጠና!', b: 'ወደ መጨረሻው ደረጃ ተቃርበዋል። አንድ ጥሩ ጨዋታ ሁሉንም ነገር ሊቀይር ይችላል!' },
+        { t: '🔴 በፍጥነት ይንቀሳቀሱ!', b: 'ደረጃዎ ወደ መሰረዝ ቀጠና እየወረደ ነው። አይጠብቁ — አሁኑኑ ይጫወቱ!' },
+      ] : [
         { t: '🚨 Elimination Risk!', b: `You\'re at risk of being eliminated. Play now to climb the board!` },
         { t: '⚠️ Danger Zone!', b: `You\'re close to the bottom. One good game can change everything!` },
         { t: '🔴 Act Fast!', b: `Your rank is slipping into elimination territory. Don\'t wait — play now!` },
       ];
 
-      const chaserMessages = [
+      const chaserMessages = isAm ? [
+        { t: '👀 መጠንቀቅ ያሻል!', b: `${chaserName} በፍጥነት እየተቃረበዎት ነው። መሪነቱን ለማቆየት አሁኑኑ ይጫወቱ!` },
+        { t: '⚡ ቀድመው ይቀጥሉ!', b: `${chaserName} ሊደርስብዎት ተቃርቧል። እንዲቀድምዎት አይፍቀዱ!` },
+      ] : [
         { t: '👀 Watch your back!', b: `${chaserName} is closing in fast. Play now to keep your lead!` },
         { t: '⚡ Stay ahead!', b: `${chaserName} is almost caught up. Don\'t let them pass you!` },
       ];
@@ -172,11 +194,24 @@ export async function notifyRankAlert(
  * Send tournament start notification
  */
 export async function notifyTournamentStart(userId: string, tournamentName: string): Promise<void> {
+  let title = 'New Tournament Started! 🏆';
+  let body = `The "${tournamentName}" tournament has started. Enter before the deadline!`;
+
+  try {
+    const lang = await AsyncStorage.getItem('@dilmeda_language');
+    if (lang === 'am') {
+      title = 'አዲስ ውድድር ተጀምሯል! 🏆';
+      body = `"${tournamentName}" ውድድር ተጀምሯል። እባክዎ የምዝገባው ማብቂያ ሳይደርስ ይግቡ!`;
+    }
+  } catch (e) {
+    console.log('Error reading language for notification, using English', e);
+  }
+
   await sendNotificationIfEnabled(
     userId,
     'tournament_start',
-    'Tournament Started!',
-    `The "${tournamentName}" tournament has begun! Good luck!`,
+    title,
+    body,
     { tournamentName }
   );
 }
@@ -185,11 +220,24 @@ export async function notifyTournamentStart(userId: string, tournamentName: stri
  * Send tournament end notification
  */
 export async function notifyTournamentEnd(userId: string, tournamentName: string): Promise<void> {
+  let title = '⏰ Tournament Ended';
+  let body = `The "${tournamentName}" tournament has ended. Check your rank!`;
+
+  try {
+    const lang = await AsyncStorage.getItem('@dilmeda_language');
+    if (lang === 'am') {
+      title = '⏰ ውድድሩ ተጠናቋል';
+      body = `"${tournamentName}" ውድድር ተጠናቋል። ደረጃዎን ይመልከቱ!`;
+    }
+  } catch (e) {
+    console.log('Error reading language for notification', e);
+  }
+
   await sendNotificationIfEnabled(
     userId,
     'tournament_end',
-    '⏰ Tournament Ended',
-    `The "${tournamentName}" tournament has ended. Check your rank!`,
+    title,
+    body,
     { tournamentName }
   );
 }
@@ -198,11 +246,24 @@ export async function notifyTournamentEnd(userId: string, tournamentName: string
  * Send rank change notification
  */
 export async function notifyRankChange(userId: string, newRank: number, totalPlayers: number): Promise<void> {
+  let title = 'Rank Updated!';
+  let body = `You are now ranked #${newRank} out of ${totalPlayers} players!`;
+
+  try {
+    const lang = await AsyncStorage.getItem('@dilmeda_language');
+    if (lang === 'am') {
+      title = 'ደረጃዎ ታድሷል!';
+      body = `አሁን ከ${totalPlayers} ተጫዋቾች ውስጥ ደረጃዎ #${newRank} ሆኗል!`;
+    }
+  } catch (e) {
+    console.log('Error reading language for notification', e);
+  }
+
   await sendNotificationIfEnabled(
     userId,
     'rank_change',
-    'Rank Updated!',
-    `You are now ranked #${newRank} out of ${totalPlayers} players!`,
+    title,
+    body,
     { newRank, totalPlayers }
   );
 }
@@ -211,11 +272,24 @@ export async function notifyRankChange(userId: string, newRank: number, totalPla
  * Send daily reminder notification
  */
 export async function notifyDailyReminder(userId: string): Promise<void> {
+  let title = 'Daily Reminder';
+  let body = 'Don\'t forget to play today and earn points!';
+
+  try {
+    const lang = await AsyncStorage.getItem('@dilmeda_language');
+    if (lang === 'am') {
+      title = 'ዕለታዊ ማስታወሻ';
+      body = 'ዛሬ መጫወትና ነጥብ ማግኘት እንዳይረሱ!';
+    }
+  } catch (e) {
+    console.log('Error reading language for notification', e);
+  }
+
   await sendNotificationIfEnabled(
     userId,
     'daily_reminder',
-    'Daily Reminder',
-    'Don\'t forget to play today and earn points!',
+    title,
+    body,
     {}
   );
 }
@@ -225,10 +299,23 @@ export async function notifyDailyReminder(userId: string): Promise<void> {
  */
 export async function scheduleDailyReminder(userId: string, hour: number = 10): Promise<string | null> {
   try {
+    let title = 'Daily Reminder';
+    let body = 'Don\'t forget to play today and earn points!';
+
+    try {
+      const lang = await AsyncStorage.getItem('@dilmeda_language');
+      if (lang === 'am') {
+        title = 'ዕለታዊ ማስታወሻ';
+        body = 'ዛሬ መጫወትና ነጥብ ማግኘት እንዳይረሱ!';
+      }
+    } catch (e) {
+      console.log('Error reading language for notification scheduling', e);
+    }
+
     const identifier = await Notifications.scheduleNotificationAsync({
       content: {
-        title: 'Daily Reminder',
-        body: 'Don\'t forget to play today and earn points!',
+        title,
+        body,
         sound: true,
       },
       trigger: {
